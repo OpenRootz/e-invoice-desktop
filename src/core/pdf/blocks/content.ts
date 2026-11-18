@@ -31,7 +31,9 @@ export const customText: BlockRenderer = ({ block, model, f }) => {
 /** The line table; the header row repeats on following pages. */
 export const lines: BlockRenderer = ({ model, labels, f, accent, block }) => {
   const gross = model.meta.priceDisplay === 'gross';
-  const kind = gross ? labels.gross : labels.net;
+  // Small businesses (§ 19 UStG) charge no VAT: no VAT column, and no net/gross suffix
+  const noVat = !!model.seller.smallBusiness;
+  const kind = noVat ? '' : ` ${gross ? labels.gross : labels.net}`;
   const columns = (block.props?.columns ?? {}) as { position?: boolean; widths?: Partial<Record<LineColumn, number>> };
   const showPosition = columns.position !== false;
   const width = (c: LineColumn) => (columns.widths?.[c] !== undefined ? toPt(columns.widths[c]!) : COLUMN_WIDTHS[c]);
@@ -39,14 +41,15 @@ export const lines: BlockRenderer = ({ model, labels, f, accent, block }) => {
     labels.position,
     labels.description,
     labels.quantity,
-    `${labels.unitPrice} ${kind}`,
+    `${labels.unitPrice}${kind}`,
     labels.vatRate,
-    `${labels.amount} ${kind}`,
+    `${labels.amount}${kind}`,
   ];
   const header = headers.map((text, i) => ({ text, bold: true, fontSize: 8, alignment: i >= 2 ? 'right' : 'left', color: accent }));
   const rows = model.lines.map((line) => lineRow(line, gross, labels, f));
   const docRows = [...model.charges.map((c) => docRow(c, false, gross, f)), ...model.allowances.map((a) => docRow(a, true, gross, f))];
-  const drop = <T>(row: T[]) => (showPosition ? row : row.slice(1));
+  const VAT_COLUMN = 4;
+  const drop = <T>(row: T[]) => row.filter((_, i) => (showPosition || i > 0) && !(noVat && i === VAT_COLUMN));
   const widths = [width('position'), '*', width('quantity'), width('unitPrice'), width('vatRate'), width('amount')];
   return {
     table: { headerRows: 1, widths: drop(widths), body: [header, ...rows, ...docRows].map(drop) },
@@ -101,8 +104,11 @@ export const totals: BlockRenderer = ({ model, labels, f, accent }) => {
   const isCredit = model.type === 'credit_note';
   const showDue = !isCredit && (t.prepaidAmount !== 0 || t.roundingAmount !== 0);
   const body = [
-    row(labels.totalNet, f.money(t.taxBasisTotal)),
-    ...t.vat.map((v) => row(`${labels.vat} ${f.percent(v.category.rate)} ${labels.vatOn} ${f.money(v.basisAmount)}`, f.money(v.taxAmount))),
+    // Small businesses (§ 19 UStG): no net total and no VAT breakdown, only the total
+    ...(model.seller.smallBusiness ? [] : [row(labels.totalNet, f.money(t.taxBasisTotal))]),
+    ...(model.seller.smallBusiness ? [] : t.vat).map((v) =>
+      row(`${labels.vat} ${f.percent(v.category.rate)} ${labels.vatOn} ${f.money(v.basisAmount)}`, f.money(v.taxAmount)),
+    ),
     row(isCredit ? labels.refundTotal : labels.total, f.money(t.grandTotal), !showDue),
     t.roundingAmount !== 0 ? row(labels.rounding, f.money(t.roundingAmount)) : undefined,
     t.prepaidAmount !== 0 && !isCredit ? row(labels.prepaid, `− ${f.money(t.prepaidAmount)}`) : undefined,

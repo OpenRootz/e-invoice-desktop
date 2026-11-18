@@ -125,6 +125,16 @@ describe('default template', () => {
     expect(t).not.toContain('Bereits bezahlt');
   });
 
+  it('shows no VAT for small businesses (§ 19 UStG), only the note and the total', () => {
+    const t = text(scenarios.find((s) => s.name === 'small-business-19')!.model);
+    expect(t).toContain('Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.');
+    expect(t).toContain('Gesamtbetrag');
+    expect(t).toContain('98,90 €');
+    expect(t).not.toContain('USt.');
+    expect(t).not.toContain('netto');
+    expect(t).not.toContain('brutto');
+  });
+
   it('prints exemption reasons', () => {
     const t = text(scenarios.find((s) => s.name === 'intra-community-k')!.model);
     expect(t).toContain('Steuerfreie innergemeinschaftliche Lieferung');

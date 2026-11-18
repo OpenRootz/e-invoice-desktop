@@ -68,6 +68,11 @@ export interface Party {
 }
 
 export interface Seller extends Party {
+  /**
+   * BT-29 seller identifier, with scheme BT-29-1 (an ISO 6523 ICD, e.g. `0088` for a GLN) or without one
+   * (e.g. the German Wirtschafts-Identifikationsnummer). One of BT-29, BT-30 or BT-31 is required (BR-CO-26).
+   */
+  identifier?: { id: string; scheme?: string };
   /** BT-32 (German Steuernummer) */
   taxNumber?: string;
   /** BT-30 with scheme BT-30-1 (e.g. commercial register number) */
@@ -76,6 +81,11 @@ export interface Seller extends Party {
   legalInfo?: string;
   /** BG-6 (mandatory in XRechnung) */
   contact: Contact;
+  /**
+   * Small business (Kleinunternehmer, § 19 UStG): no VAT is charged, every item has VAT category `E` with the
+   * exemption note, and the PDF shows no VAT. Not serialized; see {@link applySmallBusiness}.
+   */
+  smallBusiness?: boolean;
 }
 
 export interface Buyer extends Party {

@@ -1,4 +1,5 @@
 import {
+  applySmallBusiness,
   buildCreditNote,
   calculate,
   CreditNoteRequest,
@@ -295,6 +296,36 @@ export const scenarios: Scenario[] = [
       lines: lines([{ name: 'Geschenkbox', sku: 'BOX-1', price: 2521, tax: 479 }]),
       payment: { means: [{ code: '58', iban: 'DE02120300000000202051' }], terms: 'Zahlbar sofort ohne Abzug.', prepaidAmount: 0 },
     }),
+  }),
+
+  scenario({
+    name: 'small-business-19',
+    description: 'Small business (§ 19 UStG): tax number + Wirtschafts-IdNr. (BT-29), every item exempt (E) with the note, consumer buyer',
+    model: applySmallBusiness(
+      model({
+        seller: {
+          name: 'Töpferei Beispiel',
+          address: { line1: 'Am Markt 3', postalCode: '04109', city: 'Leipzig', countryCode: 'DE' },
+          taxNumber: '231/456/78901',
+          identifier: { id: 'DE123456789-00001' },
+          contact: { name: 'Jana Beispiel', phone: '+49 341 987654', email: 'jana@example.com' },
+          electronicAddress: { scheme: 'EM', value: 'jana@example.com' },
+        },
+        buyer: {
+          name: 'Erika Mustermann',
+          isBusiness: false,
+          address: { line1: 'Heidestraße 17', postalCode: '51147', city: 'Köln', countryCode: 'DE' },
+          electronicAddress: { scheme: 'EM', value: 'erika@example.com' },
+        },
+        lines: lines([
+          { name: 'Keramiktasse handgemacht', sku: 'TAS-1', qty: '2', price: 2400 },
+          { name: 'Servierschale', sku: 'SCH-2', price: 4500 },
+        ]),
+        charges: [{ amount: 590, reason: 'Versand', reasonCode: 'FC', vat: VAT_19 }],
+        payment: { means: [{ code: '58', iban: 'DE02120300000000202051' }], terms: 'Zahlbar innerhalb von 14 Tagen.', prepaidAmount: 0 },
+      }),
+      mappingLabels('de').smallBusiness,
+    ),
   }),
 ];
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { calculate, checkModel, EInvoiceModel, IssueCode } from '../../../src/core';
+import { applySmallBusiness, calculate, checkModel, EInvoiceModel, IssueCode } from '../../../src/core';
 import { line, model, VAT_19 } from '../../fixtures/model-builders';
 
 function codes(m: EInvoiceModel, formats: Parameters<typeof checkModel>[1] = ['zugferd'], expected?: number) {
@@ -15,6 +15,20 @@ describe('checkModel', () => {
     expect(codes(valid(), ['zugferd', 'xrechnung-cii'], 1190)).toEqual([]);
   });
 
+  it('accepts a small business (§ 19 UStG) with a tax number only', () => {
+    const m = applySmallBusiness(valid(), 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.');
+    m.seller.vatId = undefined;
+    m.seller.taxNumber = '231/456/78901';
+    m.seller.identifier = { id: 'DE123456789-00001' };
+    expect(codes(m, ['zugferd', 'xrechnung-cii'])).toEqual([]);
+  });
+
+  it('rejects VAT on an item of a small business (§ 19 UStG)', () => {
+    const m = applySmallBusiness(valid(), 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.');
+    m.charges = [{ amount: 490, reason: 'Versand', reasonCode: 'FC', vat: VAT_19 }];
+    expect(codes(m)).toContain('SMALL_BUSINESS_VAT');
+  });
+
   it('requires calculated totals', () => {
     expect(checkModel(valid(), ['zugferd']).map((i) => i.code)).toContain('TOTALS_MISSING');
   });
@@ -25,14 +39,24 @@ describe('checkModel', () => {
     m.seller.vatId = undefined;
     m.totals = calculate(m);
     const issues = checkModel(m, ['zugferd']);
-    expect(issues.map((i) => i.code)).toEqual(['SELLER_INCOMPLETE', 'SELLER_TAX_ID_MISSING']);
+    expect(issues.map((i) => i.code)).toEqual(['SELLER_INCOMPLETE', 'SELLER_TAX_ID_MISSING', 'SELLER_IDENTIFIER_MISSING']);
     expect(issues[0].message).toContain('contact phone');
   });
 
-  it('accepts a tax number instead of a VAT ID', () => {
+  it('accepts a tax number instead of a VAT ID, together with a seller identifier', () => {
     const m = valid();
     m.seller.vatId = undefined;
     m.seller.taxNumber = '11/222/33333';
+    m.seller.identifier = { id: 'DE123456789-00001' };
+    expect(codes(m)).toEqual([]);
+  });
+
+  it('requires a VAT ID, register number or seller identifier besides a tax number (BR-CO-26)', () => {
+    const m = valid();
+    m.seller.vatId = undefined;
+    m.seller.taxNumber = '11/222/33333';
+    expect(codes(m)).toEqual(['SELLER_IDENTIFIER_MISSING']);
+    m.seller.legalRegistration = { id: 'HRB 12345' };
     expect(codes(m)).toEqual([]);
   });
 

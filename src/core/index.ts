@@ -10,3 +10,4 @@ export * from './sample';
 export * from './xml';
 export * from './pdf';
 export * from './labels';
+export * from './small-business';

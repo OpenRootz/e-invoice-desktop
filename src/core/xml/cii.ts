@@ -181,7 +181,10 @@ function headerAllowanceCharge(ac: AllowanceCharge, isCharge: boolean, amount: (
 
 /** Trade party (BG-4 / BG-7). Seller-only fields are written when `seller` is given. */
 function party(p: Party, contact: Contact | undefined, seller?: Seller): XmlElement[] {
+  const id = seller?.identifier;
   return [
+    // BT-29: without a scheme as ram:ID, with an ISO 6523 scheme as ram:GlobalID
+    id && (id.scheme ? el('ram:GlobalID', { schemeID: id.scheme }, id.id) : el('ram:ID', {}, id.id)),
     el('ram:Name', {}, p.name),
     textEl('ram:Description', seller?.legalInfo),
     optEl(

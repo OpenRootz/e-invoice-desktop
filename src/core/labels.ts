@@ -6,6 +6,8 @@ export interface MappingLabels {
   rounding: string;
   shipping: string;
   surcharge: string;
+  /** Exemption reason (BT-120) for small businesses (§ 19 UStG) */
+  smallBusiness: string;
   creditNote: CreditNoteTexts;
 }
 
@@ -15,6 +17,7 @@ const LABELS: Record<string, MappingLabels> = {
     rounding: 'Rundungsdifferenz',
     shipping: 'Versand',
     surcharge: 'Zuschlag',
+    smallBusiness: 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.',
     creditNote: {
       amountLine: (c) => `Gutschrift (${c.code === 'S' ? `${c.rate.replace('.', ',')} % USt.` : 'umsatzsteuerfrei'})`,
       deduction: 'Abzug',
@@ -28,6 +31,7 @@ const LABELS: Record<string, MappingLabels> = {
     rounding: 'Rounding difference',
     shipping: 'Shipping',
     surcharge: 'Surcharge',
+    smallBusiness: 'No VAT is charged under the small business scheme (Section 19 UStG).',
     creditNote: {
       amountLine: (c) => `Credit (${c.code === 'S' ? `${c.rate} % VAT` : 'VAT exempt'})`,
       deduction: 'Deduction',

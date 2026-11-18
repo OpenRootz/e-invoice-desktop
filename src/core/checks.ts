@@ -15,6 +15,7 @@ export type IssueCode =
   | 'INVALID_DATE'
   | 'SELLER_INCOMPLETE'
   | 'SELLER_TAX_ID_MISSING'
+  | 'SELLER_IDENTIFIER_MISSING'
   | 'BUYER_INCOMPLETE'
   | 'BUYER_REFERENCE_MISSING'
   | 'BUYER_ELECTRONIC_ADDRESS_MISSING'
@@ -22,6 +23,7 @@ export type IssueCode =
   | 'INVALID_RATE_FOR_CATEGORY'
   | 'EXEMPTION_REASON_REQUIRED'
   | 'EXEMPTION_REASON_CONFLICT'
+  | 'SMALL_BUSINESS_VAT'
   | 'BUYER_VAT_ID_REQUIRED'
   | 'INTRA_COMMUNITY_SAME_COUNTRY'
   | 'DELIVERY_INFO_REQUIRED'
@@ -126,6 +128,13 @@ export function checkModel(model: EInvoiceModel, formats: EInvoiceFormat[]): Inv
     }
     reasons.set(key, reasons.get(key) ?? reason);
   }
+  if (model.seller.smallBusiness) {
+    for (const { category, path } of categories) {
+      if (category && (category.code !== 'E' || !isZeroDecimal(category.rate))) {
+        add('SMALL_BUSINESS_VAT', 'Small businesses (§ 19 UStG) charge no VAT: every item needs VAT category E with 0 %', path);
+      }
+    }
+  }
   const usedCodes = new Set(categories.map((c) => c.category?.code));
   if ((usedCodes.has('AE') || usedCodes.has('K')) && isBlank(buyer.vatId)) {
     add('BUYER_VAT_ID_REQUIRED', 'Reverse charge (AE) and intra-community supplies (K) require the buyer VAT ID', 'buyer.vatId');
@@ -174,7 +183,7 @@ export function checkModel(model: EInvoiceModel, formats: EInvoiceFormat[]): Inv
   return issues;
 }
 
-/** Seller data required by EN 16931 and XRechnung (BG-4, BG-6, BT-31/BT-32, BT-34). */
+/** Seller data required by EN 16931 and XRechnung (BG-4, BG-6, BT-29/BT-30/BT-31, BT-32, BT-34). */
 export function checkSeller(seller: Seller): InvoiceIssue[] {
   const issues: InvoiceIssue[] = [];
   const missing = [
@@ -193,6 +202,15 @@ export function checkSeller(seller: Seller): InvoiceIssue[] {
   }
   if (isBlank(seller.vatId) && isBlank(seller.taxNumber)) {
     issues.push({ code: 'SELLER_TAX_ID_MISSING', message: 'The seller needs a VAT ID or a tax number', path: 'seller.vatId' });
+  }
+  if (isBlank(seller.vatId) && isBlank(seller.legalRegistration?.id) && isBlank(seller.identifier?.id)) {
+    // BR-CO-26: a tax number alone does not identify the seller
+    issues.push({
+      code: 'SELLER_IDENTIFIER_MISSING',
+      message:
+        'The seller needs a VAT ID, a register number or a seller identifier (e.g. the Wirtschafts-IdNr.); a tax number alone is not enough',
+      path: 'seller.identifier',
+    });
   }
   return issues;
 }

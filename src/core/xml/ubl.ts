@@ -126,6 +126,7 @@ function party(p: Party, contact: Contact | undefined, seller?: Seller, sepaCred
     'cac:Party',
     {},
     p.electronicAddress && el('cbc:EndpointID', { schemeID: p.electronicAddress.scheme }, p.electronicAddress.value),
+    seller?.identifier && el('cac:PartyIdentification', {}, el('cbc:ID', { schemeID: seller.identifier.scheme }, seller.identifier.id)),
     sepaCreditorId && el('cac:PartyIdentification', {}, el('cbc:ID', { schemeID: 'SEPA' }, sepaCreditorId)),
     p.tradingName && el('cac:PartyName', {}, el('cbc:Name', {}, p.tradingName)),
     address('cac:PostalAddress', p.address),
