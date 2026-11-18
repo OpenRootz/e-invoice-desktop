@@ -1,0 +1,27 @@
+appId: io.github.openrootz.e-invoice-desktop
+productName: E-Invoice Desktop
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - '!**/*.{map,md,ts}'
+asar: true
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  artifactName: ${productName}-${version}-${arch}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  # Master data stays when the app is uninstalled
+  deleteAppDataOnUninstall: false
+  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+portable:
+  artifactName: ${productName}-${version}-portable-${arch}.${ext}
+# No auto-update: releases are downloaded manually from GitHub
+publish: null

@@ -1,0 +1,10 @@
+# pnpm settings (pnpm >= 11 reads them from here, not from .npmrc)
+# electron-builder needs a flat node_modules
+nodeLinker: hoisted
+engineStrict: true
+
+allowBuilds:
+  electron: true
+  esbuild: true
+  # Squirrel installer, not used (NSIS + portable)
+  electron-winstaller: false

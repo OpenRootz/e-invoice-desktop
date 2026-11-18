@@ -1,0 +1,17 @@
+node_modules/
+out/
+release/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+
+# test / validation output
+test/__data__/
+test/__output__/
+.validate-tools/
+
+# IDE
+.idea/
+.vscode/
