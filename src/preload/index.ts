@@ -28,6 +28,11 @@ const api: EInvoiceApi = {
   numbering: {
     suggest: (issueDate) => invoke(IpcChannel.numberingSuggest, issueDate),
   },
+  invoice: {
+    preview: (request) => invoke(IpcChannel.invoicePreview, request),
+    export: (request) => invoke(IpcChannel.invoiceExport, request),
+    showInFolder: () => invoke(IpcChannel.invoiceShowInFolder),
+  },
 };
 
 contextBridge.exposeInMainWorld('api', api);

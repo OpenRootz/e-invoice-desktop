@@ -1,8 +1,12 @@
-import { app, ipcMain, type IpcMainInvokeEvent } from 'electron';
+import path from 'node:path';
+
+import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import { z } from 'zod';
 
-import { IpcChannel, type AppInfo } from '../shared/api';
+import { IpcChannel, type AppInfo, type ExportResult } from '../shared/api';
+import { invoiceRequestSchema } from '../shared/invoice';
 import { customerSchema, isoDateSchema, productSchema, sellerProfileSchema, settingsSchema } from '../shared/schema';
+import { invoiceFileName, InvoiceService } from './invoice/service';
 import { assertTrustedSender } from './security';
 import type { MasterDataStore } from './store';
 
@@ -11,10 +15,14 @@ const newCustomerSchema = customerSchema.extend({ id: idSchema.optional() });
 const newProductSchema = productSchema.extend({ id: idSchema.optional() });
 
 /** Registers a handler that only answers the app's own renderer and validates its input first. */
-function handle<S extends z.ZodType, R>(channel: string, input: S, fn: (value: z.infer<S>) => R | Promise<R>): void {
+function handle<S extends z.ZodType, R>(
+  channel: string,
+  input: S,
+  fn: (value: z.infer<S>, event: IpcMainInvokeEvent) => R | Promise<R>,
+): void {
   ipcMain.handle(channel, (event: IpcMainInvokeEvent, arg: unknown) => {
     assertTrustedSender(event);
-    return fn(input.parse(arg));
+    return fn(input.parse(arg), event);
   });
 }
 
@@ -39,4 +47,27 @@ export function registerIpcHandlers(store: MasterDataStore): void {
   handle(IpcChannel.settingsSave, settingsSchema, (settings) => store.settings.write(settings));
 
   handle(IpcChannel.numberingSuggest, isoDateSchema, (date) => store.suggestNumber(date));
+
+  const invoices = new InvoiceService(store);
+  let lastSaved: string | undefined;
+  handle(IpcChannel.invoicePreview, invoiceRequestSchema, (request) => invoices.preview(request));
+  handle(IpcChannel.invoiceExport, invoiceRequestSchema, async (request, event): Promise<ExportResult> => {
+    // Check before asking where to save, so the user is not asked for a file that will not be written
+    const { issues } = await invoices.check(request);
+    if (issues.length) return { status: 'invalid', issues };
+    const settings = await store.settings.read();
+    const window = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+    const options: Electron.SaveDialogOptions = {
+      defaultPath: path.join(settings.lastOutputDir ?? app.getPath('documents'), invoiceFileName(request.number)),
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    };
+    const choice = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options);
+    if (choice.canceled || !choice.filePath) return { status: 'cancelled' };
+    const result = await invoices.write(request, choice.filePath);
+    if (result.status === 'saved') lastSaved = result.filePath;
+    return result;
+  });
+  handle(IpcChannel.invoiceShowInFolder, none, () => {
+    if (lastSaved) shell.showItemInFolder(lastSaved);
+  });
 }

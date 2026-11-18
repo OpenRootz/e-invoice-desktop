@@ -121,11 +121,16 @@ export class JsonFile<T> {
 
 /** Writes a file so that it is either completely old or completely new, even if the app or the machine stops. */
 export async function writeAtomic(filePath: string, content: string): Promise<void> {
+  return writeAtomicBuffer(filePath, Buffer.from(content, 'utf8'));
+}
+
+/** {@link writeAtomic} for binary content. */
+export async function writeAtomicBuffer(filePath: string, content: Uint8Array): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   const tmp = `${filePath}.${randomBytes(6).toString('hex')}.tmp`;
   const handle = await fs.open(tmp, 'w');
   try {
-    await handle.writeFile(content, 'utf8');
+    await handle.writeFile(content);
     await handle.sync();
   } finally {
     await handle.close();

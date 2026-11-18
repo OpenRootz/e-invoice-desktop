@@ -1,3 +1,4 @@
+import type { InvoiceRequest } from './invoice';
 import type { Customer, Product, SellerProfile, Settings } from './schema';
 
 /** IPC channels between preload and main. */
@@ -15,7 +16,18 @@ export const IpcChannel = {
   settingsGet: 'settings:get',
   settingsSave: 'settings:save',
   numberingSuggest: 'numbering:suggest',
+  invoicePreview: 'invoice:preview',
+  invoiceExport: 'invoice:export',
+  invoiceShowInFolder: 'invoice:show-in-folder',
 } as const;
+
+/** A problem that blocks an invoice (core checks, seller data, layout) */
+export interface Issue {
+  code: string;
+  message: string;
+  /** Path in the model or settings, e.g. `lines[2].vat` */
+  path?: string;
+}
 
 export interface AppInfo {
   name: string;
@@ -23,6 +35,8 @@ export interface AppInfo {
   /** Folder of the master data files */
   dataDir: string;
 }
+
+export type ExportResult = { status: 'saved'; filePath: string } | { status: 'invalid'; issues: Issue[] } | { status: 'cancelled' };
 
 export type NewCustomer = Omit<Customer, 'id'> & { id?: string };
 export type NewProduct = Omit<Product, 'id'> & { id?: string };
@@ -53,5 +67,13 @@ export interface EInvoiceApi {
   numbering: {
     /** Suggested invoice number for an issue date (`YYYY-MM-DD`) */
     suggest(issueDate: string): Promise<string>;
+  };
+  invoice: {
+    /** The PDF as it would be written, with the issues that would block it */
+    preview(request: InvoiceRequest): Promise<{ pdf?: Uint8Array; issues: Issue[] }>;
+    /** Asks where to save, checks, renders and writes the ZUGFeRD PDF */
+    export(request: InvoiceRequest): Promise<ExportResult>;
+    /** Shows the last written invoice in the file manager */
+    showInFolder(): Promise<void>;
   };
 }
