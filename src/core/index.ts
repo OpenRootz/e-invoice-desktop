@@ -1,0 +1,12 @@
+// Core layer: model, calculation, XML and PDF rendering.
+// Must not import from @vendure/* or @nestjs/*, so it stays framework-independent and unit-testable.
+export * from './model';
+export * from './money';
+export * from './calculate';
+export * from './checks';
+export * from './seller-format';
+export * from './credit-note';
+export * from './sample';
+export * from './xml';
+export * from './pdf';
+export * from './labels';

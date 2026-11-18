@@ -24,10 +24,11 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint --no-error-on-unmatched-pattern src test \"*.mjs\" \"*.ts\"",
-    "lint:fix": "eslint --fix --no-error-on-unmatched-pattern src test \"*.mjs\" \"*.ts\"",
-    "format": "prettier --write --no-error-on-unmatched-pattern src test .github \"*.{json,md,mjs,ts,yml,yaml}\"",
-    "format:check": "prettier --check --no-error-on-unmatched-pattern src test .github \"*.{json,md,mjs,ts,yml,yaml}\""
+    "lint": "eslint src test \"*.mjs\" \"*.{ts,mts}\"",
+    "lint:fix": "eslint --fix src test \"*.mjs\" \"*.{ts,mts}\"",
+    "format": "prettier --write src test .github \"*.{json,md,mjs,mts,ts,yml,yaml}\"",
+    "format:check": "prettier --check src test .github \"*.{json,md,mjs,mts,ts,yml,yaml}\"",
+    "validate": "bash test/validate/validate.sh"
   },
   "dependencies": {
     "fflate": "^0.8.3",
