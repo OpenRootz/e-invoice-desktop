@@ -77,7 +77,7 @@ For maintainers. A release is one commit and one tag:
 2. Open a pull request titled `chore: release X.Y.Z` that only sets `version` in `package.json` and the heading of
    the release in `CHANGELOG.md` (`## X.Y.Z (YYYY-MM-DD)`). Squash and merge it as the last pull request.
 3. Tag exactly that commit: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-4. The `Release` workflow checks that the tag matches the version, builds the installer and the portable exe on a
+4. The `Release` workflow checks that the tag matches the version, runs typecheck and tests, builds the installer and the portable exe on a
    Windows runner and publishes them with `SHA256SUMS.txt` as a GitHub release.
 5. Replace the generated release notes with the CHANGELOG section.
 
