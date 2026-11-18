@@ -41,6 +41,12 @@ export default tseslint.config(
     },
   },
   {
+    // Development scripts run by Electron as CommonJS
+    files: ['scripts/**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs' },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
