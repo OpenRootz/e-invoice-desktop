@@ -9,6 +9,7 @@ import { CompanyPage } from '@/pages/company';
 import { CustomersPage } from '@/pages/customers';
 import { Placeholder } from '@/pages/placeholder';
 import { ProductsPage } from '@/pages/products';
+import { SettingsPage } from '@/pages/settings';
 
 type PageKey = 'invoice' | 'customers' | 'products' | 'company' | 'layout' | 'settings';
 
@@ -18,7 +19,7 @@ const PAGES: { key: PageKey; icon: ComponentType<{ className?: string }>; Page: 
   { key: 'products', icon: Package, Page: ProductsPage },
   { key: 'company', icon: Building2, Page: CompanyPage },
   { key: 'layout', icon: LayoutTemplate, Page: Placeholder },
-  { key: 'settings', icon: SettingsIcon, Page: Placeholder },
+  { key: 'settings', icon: SettingsIcon, Page: SettingsPage },
 ];
 
 export function App() {

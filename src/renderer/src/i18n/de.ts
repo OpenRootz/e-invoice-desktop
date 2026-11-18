@@ -145,6 +145,22 @@ export const de = {
     LS: 'Pauschale',
   },
   vat: { S19: '19 % (Regelsatz)', S7: '7 % (ermäßigt)', Z0: '0 % (Nullsatz, z. B. Photovoltaik)', none: 'keine (Kleinunternehmer)' },
+  settings: {
+    uiLanguage: 'Sprache der Oberfläche',
+    numbering: 'Rechnungsnummern',
+    numberingIntro:
+      'Die App schlägt für jede Rechnung die nächste Nummer vor; Sie können sie vor dem Erstellen ändern. Rechnungsnummern müssen einmalig sein – führen Sie Ihre Nummernfolge lückenlos.',
+    pattern: 'Muster',
+    patternHint: 'Platzhalter: {YYYY} Jahr, {YY} Jahr zweistellig, {MM} Monat, {DD} Tag, {NNNN} laufende Nummer (Anzahl N = Stellen).',
+    patternInvalid: 'Das Muster braucht einen Zähler wie {NNNN}.',
+    next: 'Nächste laufende Nummer',
+    resetYearly: 'Laufende Nummer jedes Jahr bei 1 beginnen',
+    preview: 'Nächste Rechnungsnummer: {{number}}',
+    data: 'Daten',
+    dataDir:
+      'Ihre Stammdaten liegen in diesem Ordner. Sichern Sie ihn regelmäßig. Erstellte Rechnungen speichert die App nicht – bewahren Sie die PDF-Dateien 8 Jahre auf.',
+    version: 'Version {{version}}',
+  },
   languages: { de: 'Deutsch', en: 'Englisch' },
 };
 

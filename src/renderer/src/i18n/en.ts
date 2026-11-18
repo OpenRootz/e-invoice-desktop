@@ -146,5 +146,21 @@ export const en: Messages = {
     LS: 'Lump sum',
   },
   vat: { S19: '19 % (standard)', S7: '7 % (reduced)', Z0: '0 % (zero rate, e.g. solar panels)', none: 'none (small business)' },
+  settings: {
+    uiLanguage: 'Interface language',
+    numbering: 'Invoice numbers',
+    numberingIntro:
+      'The app suggests the next number for every invoice; you can change it before creating the invoice. Invoice numbers must be unique – keep your sequence without gaps.',
+    pattern: 'Pattern',
+    patternHint: 'Placeholders: {YYYY} year, {YY} two-digit year, {MM} month, {DD} day, {NNNN} counter (number of Ns = digits).',
+    patternInvalid: 'The pattern needs a counter like {NNNN}.',
+    next: 'Next counter',
+    resetYearly: 'Start the counter at 1 every year',
+    preview: 'Next invoice number: {{number}}',
+    data: 'Data',
+    dataDir:
+      'Your master data is stored in this folder. Back it up regularly. The app does not store created invoices – keep the PDF files for 8 years.',
+    version: 'Version {{version}}',
+  },
   languages: { de: 'German', en: 'English' },
 };
