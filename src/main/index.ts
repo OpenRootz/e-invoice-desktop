@@ -2,6 +2,7 @@ import path from 'node:path';
 import { app, BrowserWindow, Menu } from 'electron';
 import { registerIpcHandlers } from './ipc';
 import { hardenSessions } from './security';
+import { MasterDataStore } from './store';
 
 app.enableSandbox();
 
@@ -45,7 +46,7 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(() => {
     if (app.isPackaged) Menu.setApplicationMenu(null);
     hardenSessions();
-    registerIpcHandlers();
+    registerIpcHandlers(new MasterDataStore(app.getPath('userData')));
     createWindow();
   });
 
