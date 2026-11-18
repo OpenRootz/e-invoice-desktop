@@ -5,14 +5,24 @@ import { z } from 'zod';
 
 import { IpcChannel, type AppInfo, type ExportResult } from '../shared/api';
 import { invoiceRequestSchema } from '../shared/invoice';
-import { customerSchema, isoDateSchema, productSchema, sellerProfileSchema, settingsSchema } from '../shared/schema';
+import { customerSchema, imageDataUrlSchema, isoDateSchema, productSchema, sellerProfileSchema, settingsSchema } from '../shared/schema';
 import { invoiceFileName, InvoiceService } from './invoice/service';
+import { LayoutService } from './layout/service';
 import { assertTrustedSender } from './security';
 import type { MasterDataStore } from './store';
 
 const idSchema = z.uuid();
 const newCustomerSchema = customerSchema.extend({ id: idSchema.optional() });
 const newProductSchema = productSchema.extend({ id: idSchema.optional() });
+// The document itself is validated by the core's parseLayout; here only its size is limited
+const layoutDraftSchema = z.object({
+  document: z.unknown().refine((d) => JSON.stringify(d ?? null).length < 500_000, 'Layout too large'),
+  images: z.record(z.string().regex(/^[\w-]{1,40}$/), imageDataUrlSchema).refine((m) => Object.keys(m).length <= 20, 'Too many images'),
+});
+const layoutPreviewSchema = layoutDraftSchema.extend({
+  sample: z.enum(['b2b-net', 'b2c-gross', 'many-lines', 'worst-case']),
+  language: z.enum(['de', 'en']),
+});
 
 /** Registers a handler that only answers the app's own renderer and validates its input first. */
 function handle<S extends z.ZodType, R>(
@@ -70,4 +80,10 @@ export function registerIpcHandlers(store: MasterDataStore): void {
   handle(IpcChannel.invoiceShowInFolder, none, () => {
     if (lastSaved) shell.showItemInFolder(lastSaved);
   });
+
+  const layouts = new LayoutService(store);
+  handle(IpcChannel.layoutGet, none, () => layouts.current());
+  handle(IpcChannel.layoutPreset, z.enum(['default', 'din5008A', 'din5008B', 'minimal']), (name) => layouts.preset(name));
+  handle(IpcChannel.layoutPreview, layoutPreviewSchema, (request) => layouts.preview(request));
+  handle(IpcChannel.layoutSave, layoutDraftSchema, (draft) => layouts.save(draft));
 }

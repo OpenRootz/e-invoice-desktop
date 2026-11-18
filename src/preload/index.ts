@@ -33,6 +33,12 @@ const api: EInvoiceApi = {
     export: (request) => invoke(IpcChannel.invoiceExport, request),
     showInFolder: () => invoke(IpcChannel.invoiceShowInFolder),
   },
+  layout: {
+    get: () => invoke(IpcChannel.layoutGet),
+    preset: (name) => invoke(IpcChannel.layoutPreset, name),
+    preview: (request) => invoke(IpcChannel.layoutPreview, request),
+    save: (draft) => invoke(IpcChannel.layoutSave, draft),
+  },
 };
 
 contextBridge.exposeInMainWorld('api', api);

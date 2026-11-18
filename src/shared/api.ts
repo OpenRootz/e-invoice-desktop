@@ -19,7 +19,48 @@ export const IpcChannel = {
   invoicePreview: 'invoice:preview',
   invoiceExport: 'invoice:export',
   invoiceShowInFolder: 'invoice:show-in-folder',
+  layoutGet: 'layout:get',
+  layoutPreset: 'layout:preset',
+  layoutPreview: 'layout:preview',
+  layoutSave: 'layout:save',
 } as const;
+
+/** A layout problem; errors block saving the layout */
+export interface LayoutIssue {
+  level: 'error' | 'warning';
+  code: string;
+  message: string;
+  blockKey?: string;
+}
+
+/** Where a block ended up in the preview (0.1 mm) */
+export interface BlockBox {
+  key: string;
+  page: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  overflowBy?: number;
+}
+
+export type LayoutPresetName = 'default' | 'din5008A' | 'din5008B' | 'minimal';
+export type PreviewSample = 'b2b-net' | 'b2c-gross' | 'many-lines' | 'worst-case';
+
+export interface LayoutDraft {
+  /** The layout document (core `PdfLayoutV2`) */
+  document: unknown;
+  /** Images of image blocks by id, as data URLs */
+  images: Record<string, string>;
+}
+
+export interface LayoutPreviewResult {
+  pdf?: Uint8Array;
+  pageCount: number;
+  blocks: BlockBox[];
+  layoutIssues: LayoutIssue[];
+  issues: Issue[];
+}
 
 /** A problem that blocks an invoice (core checks, seller data, layout) */
 export interface Issue {
@@ -75,5 +116,13 @@ export interface EInvoiceApi {
     export(request: InvoiceRequest): Promise<ExportResult>;
     /** Shows the last written invoice in the file manager */
     showInFolder(): Promise<void>;
+  };
+  layout: {
+    /** The stored layout (the default layout if none was saved) */
+    get(): Promise<LayoutDraft>;
+    preset(name: LayoutPresetName): Promise<unknown>;
+    /** The draft rendered with a sample invoice, with the measured blocks and the layout issues */
+    preview(request: LayoutDraft & { sample: PreviewSample; language: 'de' | 'en' }): Promise<LayoutPreviewResult>;
+    save(draft: LayoutDraft): Promise<{ status: 'saved' } | { status: 'invalid'; issues: LayoutIssue[] }>;
   };
 }

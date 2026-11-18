@@ -25,6 +25,7 @@ export function layoutIssues(model: EInvoiceModel, settings: Settings): Issue[] 
 /** Renders the ZUGFeRD PDF (PDF/A-3b with the CII XML embedded) with the stored layout and logo. */
 export async function renderInvoicePdf(model: EInvoiceModel, profile: SellerProfile, settings: Settings): Promise<Buffer> {
   const labels = pdfLabels(model.language);
-  const definition = await layoutTemplate({ model, labels, layout: storedLayout(settings), logo: logoImage(profile.logo) });
+  const images = Object.fromEntries(Object.entries(settings.layoutImages ?? {}).map(([id, url]) => [id, logoImage(url)!]));
+  const definition = await layoutTemplate({ model, labels, layout: storedLayout(settings), logo: logoImage(profile.logo), images });
   return renderZugferdPdf({ model, xml: toCii(model, 'zugferd'), definition, title: `${labels.invoice} ${model.number}` });
 }

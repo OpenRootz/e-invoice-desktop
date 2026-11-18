@@ -100,16 +100,18 @@ export const bankAccountSchema = z.object({
   accountName: optionalText(L.accountName),
 });
 
+/** An image as a data URL (PNG, JPEG or SVG, at most ~1.5 MB); never a remote URL */
+export const imageDataUrlSchema = z
+  .string()
+  .max(2_100_000)
+  .regex(/^data:image\/(png|jpeg|svg\+xml);base64,/, 'Images must be PNG, JPEG or SVG data URLs');
+
 /** The user's own business: seller data plus defaults for new invoices. */
 export const sellerProfileSchema = z.object({
   seller: sellerSchema,
   bank: bankAccountSchema.optional(),
   /** Logo as a data URL (PNG, JPEG or SVG); never a remote URL */
-  logo: z
-    .string()
-    .max(2_000_000)
-    .regex(/^data:image\/(png|jpeg|svg\+xml);base64,/, 'Logo must be a PNG, JPEG or SVG data URL')
-    .optional(),
+  logo: imageDataUrlSchema.optional(),
   /** Prices are entered including VAT */
   pricesIncludeTax: z.boolean(),
   /** Default payment term in days; `undefined` = no due date */
@@ -171,8 +173,10 @@ export type Numbering = z.infer<typeof numberingSchema>;
 export const settingsSchema = z.object({
   uiLanguage: z.enum(['de', 'en']),
   numbering: numberingSchema,
-  /** Layout of the PDF (core `PdfLayout`), validated by the core's layout checks */
+  /** Layout of the PDF (core `PdfLayoutV2`); validated with `parseLayout` and the layout checks when saved */
   layout: z.record(z.string(), z.unknown()).optional(),
+  /** Images of `image` blocks by the id in their `props.assetId` */
+  layoutImages: z.record(z.string().regex(/^[\w-]{1,40}$/), imageDataUrlSchema).optional(),
   /** Folder of the last export, suggested in the save dialog */
   lastOutputDir: z.string().max(4096).optional(),
 });
