@@ -12,7 +12,7 @@ your data stays on your computer.
 
 The user interface is in German and English.
 
-![Creating an invoice](https://raw.githubusercontent.com/OpenRootz/e-invoice-desktop/main/docs/images/invoice-form.png)
+![Creating an invoice](docs/images/invoice-form.png)
 
 ## Why
 
@@ -43,9 +43,9 @@ EN 16931 require before it creates an invoice and explains in plain words what i
 - **Payment**: bank transfer (with IBAN and due date), cash, card, PayPal or other; invoices can be marked as paid.
 - **Offline and private**: no network access at all, no telemetry, no updates in the background.
 
-| The invoice as PDF                                                                                                          | Layout editor                                                                                                                               |
-| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| ![A ZUGFeRD sample invoice](https://raw.githubusercontent.com/OpenRootz/e-invoice-desktop/main/docs/images/invoice-pdf.png) | ![The layout editor with the PDF preview](https://raw.githubusercontent.com/OpenRootz/e-invoice-desktop/main/docs/images/layout-editor.png) |
+| The invoice as PDF                                       | Layout editor                                                            |
+| -------------------------------------------------------- | ------------------------------------------------------------------------ |
+| ![A ZUGFeRD sample invoice](docs/images/invoice-pdf.png) | ![The layout editor with the PDF preview](docs/images/layout-editor.png) |
 
 ## Contents
 
