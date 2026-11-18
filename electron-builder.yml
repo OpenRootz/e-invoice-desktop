@@ -14,14 +14,14 @@ win:
       arch: [x64]
     - target: portable
       arch: [x64]
-  artifactName: ${productName}-${version}-${arch}.${ext}
+  artifactName: e-invoice-desktop-${version}-${arch}.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   # Master data stays when the app is uninstalled
   deleteAppDataOnUninstall: false
-  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+  artifactName: e-invoice-desktop-${version}-setup-${arch}.${ext}
 portable:
-  artifactName: ${productName}-${version}-portable-${arch}.${ext}
-# No auto-update: releases are downloaded manually from GitHub
+  artifactName: e-invoice-desktop-${version}-portable-${arch}.${ext}
+# Icon: build/icon.ico (rendered from build/icon.svg). No auto-update: releases are downloaded manually from GitHub
 publish: null
