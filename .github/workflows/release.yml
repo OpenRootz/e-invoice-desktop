@@ -1,7 +1,8 @@
 name: Release
 
 # Pushing a tag `vX.Y.Z` builds the Windows installer and the portable exe and publishes them as a GitHub release.
-# Started by hand, the workflow only builds and keeps the files as a workflow artifact (for testing).
+# The tag must match `version` in package.json. Started by hand, the workflow only builds (with a dev version) and
+# keeps the files as a workflow artifact, for testing.
 on:
   push:
     tags: ['v*.*.*']
@@ -29,16 +30,17 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Version from the tag
-        id: version
-        run: |
-          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
-            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-          else
-            echo "version=0.0.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Tag matches package version
+        if: github.ref_type == 'tag'
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - name: Build installer and portable exe
-        run: pnpm build && pnpm exec electron-builder --win --publish never -c.extraMetadata.version="${{ steps.version.outputs.version }}"
+        if: github.ref_type == 'tag'
+        run: pnpm build && pnpm exec electron-builder --win --publish never
+      - name: Build installer and portable exe (test build with a dev version)
+        if: github.ref_type != 'tag'
+        run: >-
+          pnpm build && pnpm exec electron-builder --win --publish never
+          -c.extraMetadata.version="$(node -p "require('./package.json').version")-dev.${GITHUB_RUN_NUMBER}"
       - name: Checksums
         working-directory: release
         run: sha256sum *.exe > SHA256SUMS.txt && cat SHA256SUMS.txt
