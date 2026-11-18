@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { countryOptions } from '@/lib/countries';
 import { errorMessage, useMasterData } from '@/lib/data';
-import type { SellerProfile } from '../../../shared/schema';
+import { FIELD_LIMITS, type SellerProfile } from '../../../shared/schema';
+import { normalizeCode } from '../../../core/seller-format';
 import { checkSellerProfile, emptySellerProfile } from '../../../shared/seller-profile-checks';
 
 const MAX_LOGO_BYTES = 1.5 * 1024 * 1024;
@@ -26,6 +27,13 @@ function normalize(profile: SellerProfile): SellerProfile {
   if (!s.electronicAddress?.value.trim()) delete s.electronicAddress;
   if (p.bank && !p.bank.iban.trim() && !p.bank.bic && !p.bank.accountName) delete p.bank;
   if (s.smallBusiness === false) delete s.smallBusiness;
+  // Identifiers go into the XML as they are: without the spaces of the printed form
+  if (s.vatId) s.vatId = normalizeCode(s.vatId);
+  if (s.identifier) s.identifier.id = normalizeCode(s.identifier.id);
+  if (p.bank) {
+    p.bank.iban = normalizeCode(p.bank.iban);
+    if (p.bank.bic) p.bank.bic = normalizeCode(p.bank.bic);
+  }
   return p;
 }
 
@@ -52,7 +60,16 @@ export function CompanyPage() {
       return next;
     });
   };
-  const text = (get: (p: SellerProfile) => string | undefined, set: (p: SellerProfile, value: string) => void) => ({
+  const counter = (value: string | undefined, key: 'legalInfo' | 'paymentTerms') =>
+    `(${value?.length ?? 0} / ${t('company.maxLength', { max: FIELD_LIMITS[key] })})`;
+  /** Value and change handler of a text field, with an example as placeholder and the field's maximum length */
+  const text = (
+    key: keyof typeof FIELD_LIMITS,
+    get: (p: SellerProfile) => string | undefined,
+    set: (p: SellerProfile, value: string) => void,
+  ) => ({
+    placeholder: t('company.example', { example: t(`company.examples.${key}`) }),
+    maxLength: FIELD_LIMITS[key],
     value: get(profile) ?? '',
     onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => update((p) => set(p, e.target.value)),
   });
@@ -96,6 +113,7 @@ export function CompanyPage() {
             <Field label={t('company.name')} error={error('seller.name')}>
               <Input
                 {...text(
+                  'name',
                   (p) => p.seller.name,
                   (p, v) => (p.seller.name = v),
                 )}
@@ -104,6 +122,7 @@ export function CompanyPage() {
             <Field label={`${t('company.tradingName')} (${t('common.optional')})`}>
               <Input
                 {...text(
+                  'tradingName',
                   (p) => p.seller.tradingName,
                   (p, v) => (p.seller.tradingName = v),
                 )}
@@ -112,6 +131,7 @@ export function CompanyPage() {
             <Field label={t('company.street')} error={error('seller.address.line1')}>
               <Input
                 {...text(
+                  'street',
                   (p) => p.seller.address.line1,
                   (p, v) => (p.seller.address.line1 = v),
                 )}
@@ -120,6 +140,7 @@ export function CompanyPage() {
             <Field label={`${t('company.line2')} (${t('common.optional')})`}>
               <Input
                 {...text(
+                  'line2',
                   (p) => p.seller.address.line2,
                   (p, v) => (p.seller.address.line2 = v),
                 )}
@@ -130,6 +151,7 @@ export function CompanyPage() {
             <Field label={t('company.postalCode')} error={error('seller.address.postalCode')}>
               <Input
                 {...text(
+                  'postalCode',
                   (p) => p.seller.address.postalCode,
                   (p, v) => (p.seller.address.postalCode = v),
                 )}
@@ -138,6 +160,7 @@ export function CompanyPage() {
             <Field label={t('company.city')} error={error('seller.address.city')}>
               <Input
                 {...text(
+                  'city',
                   (p) => p.seller.address.city,
                   (p, v) => (p.seller.address.city = v),
                 )}
@@ -162,6 +185,7 @@ export function CompanyPage() {
           <Field label={t('company.contactName')} error={error('seller.contact.name')}>
             <Input
               {...text(
+                'contactName',
                 (p) => p.seller.contact.name,
                 (p, v) => (p.seller.contact.name = v),
               )}
@@ -171,6 +195,7 @@ export function CompanyPage() {
             <Input
               type="tel"
               {...text(
+                'phone',
                 (p) => p.seller.contact.phone,
                 (p, v) => (p.seller.contact.phone = v),
               )}
@@ -180,6 +205,7 @@ export function CompanyPage() {
             <Input
               type="email"
               {...text(
+                'email',
                 (p) => p.seller.contact.email,
                 (p, v) => (p.seller.contact.email = v),
               )}
@@ -189,6 +215,7 @@ export function CompanyPage() {
             <Input
               type="email"
               {...text(
+                'invoiceEmail',
                 (p) => p.seller.electronicAddress?.value,
                 (p, v) => (p.seller.electronicAddress = { scheme: 'EM', value: v }),
               )}
@@ -215,6 +242,7 @@ export function CompanyPage() {
             <Field label={t('company.taxNumber')} error={error('seller.taxNumber')}>
               <Input
                 {...text(
+                  'taxNumber',
                   (p) => p.seller.taxNumber,
                   (p, v) => (p.seller.taxNumber = v),
                 )}
@@ -223,6 +251,7 @@ export function CompanyPage() {
             <Field label={t('company.vatId')} warning={warning('seller.vatId')}>
               <Input
                 {...text(
+                  'vatId',
                   (p) => p.seller.vatId,
                   (p, v) => (p.seller.vatId = v),
                 )}
@@ -236,6 +265,7 @@ export function CompanyPage() {
             >
               <Input
                 {...text(
+                  'wIdNr',
                   (p) => p.seller.identifier?.id,
                   (p, v) => (p.seller.identifier = { id: v }),
                 )}
@@ -244,16 +274,21 @@ export function CompanyPage() {
             <Field label={`${t('company.register')} (${t('common.optional')})`} hint={t('company.registerHint')}>
               <Input
                 {...text(
+                  'register',
                   (p) => p.seller.legalRegistration?.id,
                   (p, v) => (p.seller.legalRegistration = { id: v }),
                 )}
               />
             </Field>
           </FieldGrid>
-          <Field label={`${t('company.legalInfo')} (${t('common.optional')})`} hint={t('company.legalInfoHint')}>
+          <Field
+            label={`${t('company.legalInfo')} (${t('common.optional')})`}
+            hint={`${t('company.legalInfoHint')} ${counter(profile.seller.legalInfo, 'legalInfo')}`}
+          >
             <Textarea
               rows={2}
               {...text(
+                'legalInfo',
                 (p) => p.seller.legalInfo,
                 (p, v) => (p.seller.legalInfo = v),
               )}
@@ -268,6 +303,7 @@ export function CompanyPage() {
           <Field label={t('company.iban')} error={error('bank.iban')} warning={warning('bank.iban')}>
             <Input
               {...text(
+                'iban',
                 (p) => p.bank?.iban,
                 (p, v) => (p.bank = { ...p.bank, iban: v }),
               )}
@@ -276,6 +312,7 @@ export function CompanyPage() {
           <Field label={`${t('company.bic')} (${t('common.optional')})`} warning={warning('bank.bic')}>
             <Input
               {...text(
+                'bic',
                 (p) => p.bank?.bic,
                 (p, v) => (p.bank = { iban: '', ...p.bank, bic: v }),
               )}
@@ -284,6 +321,7 @@ export function CompanyPage() {
           <Field label={`${t('company.accountName')} (${t('common.optional')})`}>
             <Input
               {...text(
+                'accountName',
                 (p) => p.bank?.accountName,
                 (p, v) => (p.bank = { iban: '', ...p.bank, accountName: v }),
               )}
@@ -314,6 +352,7 @@ export function CompanyPage() {
                 type="number"
                 min={0}
                 max={365}
+                placeholder={t('company.example', { example: t('company.examples.paymentTermDays') })}
                 value={profile.paymentTermDays ?? ''}
                 onChange={(e) =>
                   update((p) => (p.paymentTermDays = e.target.value === '' ? undefined : Math.max(0, Math.round(Number(e.target.value)))))
@@ -327,10 +366,11 @@ export function CompanyPage() {
               </Select>
             </Field>
           </FieldGrid>
-          <Field label={`${t('company.paymentTerms')} (${t('common.optional')})`} hint={t('company.paymentTermsHint')}>
+          <Field label={`${t('company.paymentTerms')} (${t('common.optional')})`} hint={counter(profile.paymentTerms, 'paymentTerms')}>
             <Textarea
               rows={2}
               {...text(
+                'paymentTerms',
                 (p) => p.paymentTerms,
                 (p, v) => (p.paymentTerms = v),
               )}

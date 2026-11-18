@@ -4,6 +4,7 @@ import { checkModel, checkSeller, type InvoiceIssue } from '../core/checks';
 import { buildInvoice, type InvoiceDraft } from '../core/draft';
 import type { EInvoiceModel, IsoDate, Money, PaymentMeans, VatCategory } from '../core/model';
 import { netFromGross, percentOf } from '../core/money';
+import { normalizeCode } from '../core/seller-format';
 import {
   addressSchema,
   buyerSchema,
@@ -67,7 +68,13 @@ function paymentMeans(method: PaymentMethod, profile: SellerProfile, language: '
   const text = PAYMENT_TEXTS[language][method];
   switch (method) {
     case 'transfer':
-      return { code: '58', iban: profile.bank?.iban ?? '', bic: profile.bank?.bic, accountName: profile.bank?.accountName, text };
+      return {
+        code: '58',
+        iban: normalizeCode(profile.bank?.iban ?? ''),
+        bic: profile.bank?.bic && normalizeCode(profile.bank.bic),
+        accountName: profile.bank?.accountName,
+        text,
+      };
     case 'cash':
       return { code: '10', text };
     case 'card':

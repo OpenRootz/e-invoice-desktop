@@ -7,6 +7,34 @@ import type { Address, Buyer, ElectronicAddress, PaymentMeans, Seller, VatCatego
  * main. The core types stay the source of truth; `satisfies` keeps the schemas in line with them.
  */
 
+/**
+ * Maximum lengths of the seller and address fields, shared by the schemas and the input fields of the UI.
+ * Chosen for real data: e.g. the W-IdNr. has 17 characters, an IBAN 34 (42 with the spaces of the printed form),
+ * SEPA allows 70 characters for the account holder.
+ */
+export const FIELD_LIMITS = {
+  name: 200,
+  tradingName: 200,
+  street: 200,
+  line2: 200,
+  postalCode: 10,
+  city: 100,
+  contactName: 100,
+  phone: 30,
+  email: 254,
+  invoiceEmail: 254,
+  vatId: 20,
+  taxNumber: 20,
+  wIdNr: 17,
+  register: 100,
+  legalInfo: 500,
+  iban: 42,
+  bic: 11,
+  accountName: 70,
+  paymentTerms: 500,
+} as const;
+const L = FIELD_LIMITS;
+
 const text = (max = 500) => z.string().trim().max(max);
 /** Optional text; an empty or blank input counts as not given */
 const optionalText = (max = 500) =>
@@ -19,18 +47,21 @@ export const moneySchema = z.number().int().min(0).max(1e12);
 export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date YYYY-MM-DD expected');
 
 export const addressSchema = z.object({
-  line1: text(),
-  line2: optionalText(),
-  line3: optionalText(),
-  postalCode: text(20),
-  city: text(),
+  line1: text(L.street),
+  line2: optionalText(L.line2),
+  line3: optionalText(L.line2),
+  postalCode: text(L.postalCode),
+  city: text(L.city),
   countryCode: z.string().regex(/^[A-Z]{2}$/, 'ISO 3166-1 alpha-2 country code expected'),
   subdivision: optionalText(),
 }) satisfies z.ZodType<Address, unknown>;
 
-export const electronicAddressSchema = z.object({ scheme: text(10), value: text(320) }) satisfies z.ZodType<ElectronicAddress, unknown>;
+export const electronicAddressSchema = z.object({ scheme: text(10), value: text(L.invoiceEmail) }) satisfies z.ZodType<
+  ElectronicAddress,
+  unknown
+>;
 
-export const contactSchema = z.object({ name: optionalText(), phone: optionalText(50), email: optionalText(320) });
+export const contactSchema = z.object({ name: optionalText(L.contactName), phone: optionalText(L.phone), email: optionalText(L.email) });
 
 export const vatCategorySchema = z.object({
   code: z.enum(['S', 'Z', 'E', 'AE', 'K', 'G', 'O', 'L', 'M']),
@@ -40,33 +71,33 @@ export const vatCategorySchema = z.object({
 }) satisfies z.ZodType<VatCategory, unknown>;
 
 export const sellerSchema = z.object({
-  name: text(),
-  tradingName: optionalText(),
+  name: text(L.name),
+  tradingName: optionalText(L.tradingName),
   address: addressSchema,
-  vatId: optionalText(30),
+  vatId: optionalText(L.vatId),
   electronicAddress: electronicAddressSchema.optional(),
-  identifier: z.object({ id: text(100), scheme: optionalText(10) }).optional(),
-  taxNumber: optionalText(30),
-  legalRegistration: z.object({ id: text(100), scheme: optionalText(10) }).optional(),
-  legalInfo: optionalText(1000),
+  identifier: z.object({ id: text(L.wIdNr), scheme: optionalText(10) }).optional(),
+  taxNumber: optionalText(L.taxNumber),
+  legalRegistration: z.object({ id: text(L.register), scheme: optionalText(10) }).optional(),
+  legalInfo: optionalText(L.legalInfo),
   contact: contactSchema,
   smallBusiness: z.boolean().optional(),
 }) satisfies z.ZodType<Seller, unknown>;
 
 export const buyerSchema = z.object({
-  name: text(),
-  tradingName: optionalText(),
+  name: text(L.name),
+  tradingName: optionalText(L.tradingName),
   address: addressSchema,
-  vatId: optionalText(30),
+  vatId: optionalText(L.vatId),
   electronicAddress: electronicAddressSchema.optional(),
   isBusiness: z.boolean(),
   contact: contactSchema.optional(),
 }) satisfies z.ZodType<Buyer, unknown>;
 
 export const bankAccountSchema = z.object({
-  iban: text(34),
-  bic: optionalText(11),
-  accountName: optionalText(),
+  iban: text(L.iban),
+  bic: optionalText(L.bic),
+  accountName: optionalText(L.accountName),
 });
 
 /** The user's own business: seller data plus defaults for new invoices. */
@@ -84,7 +115,7 @@ export const sellerProfileSchema = z.object({
   /** Default payment term in days; `undefined` = no due date */
   paymentTermDays: z.number().int().min(0).max(365).optional(),
   /** Default payment terms text (BT-20) */
-  paymentTerms: optionalText(1000),
+  paymentTerms: optionalText(L.paymentTerms),
   /** Default invoice language */
   invoiceLanguage: z.enum(['de', 'en']),
 });
@@ -154,6 +185,12 @@ export const DEFAULT_SETTINGS: Settings = {
 
 /** Payment means the app offers (subset of UNTDID 4461). */
 export const paymentMeansSchema = z.union([
-  z.object({ code: z.literal('58'), iban: text(34), bic: optionalText(11), accountName: optionalText(), text: optionalText() }),
+  z.object({
+    code: z.literal('58'),
+    iban: text(L.iban),
+    bic: optionalText(L.bic),
+    accountName: optionalText(L.accountName),
+    text: optionalText(),
+  }),
   z.object({ code: z.enum(['10', '30', '48', '54', '55', '68', 'ZZZ']), text: optionalText() }),
 ]) satisfies z.ZodType<PaymentMeans, unknown>;

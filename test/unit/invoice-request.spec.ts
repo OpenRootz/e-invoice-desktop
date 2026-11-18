@@ -43,6 +43,12 @@ describe('prepareInvoice', () => {
     expect(model.payment.means).toEqual([{ code: '58', iban: 'DE02120300000000202051', text: 'Überweisung' }]);
   });
 
+  it('writes the IBAN without the spaces of the printed form', () => {
+    const p = profile();
+    p.bank = { iban: 'de02 1203 0000 0000 2020 51', bic: 'byla dem1 001' };
+    expect(prepareInvoice(request(), p).model.payment.means[0]).toMatchObject({ iban: 'DE02120300000000202051', bic: 'BYLADEM1001' });
+  });
+
   it('needs no due date when paid in cash', () => {
     const { model, issues } = prepareInvoice(request({ payment: { method: 'cash', paid: true } }), profile());
     expect(issues).toEqual([]);
