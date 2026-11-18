@@ -1,0 +1,6 @@
+# PDFs whose Mustang warnings are expected. One file name per line; everything after # is a comment.
+# The app's own invoices compute the VAT per rate from the net total (`taxCalculation: 'en16931'`). These core
+# scenarios keep the per-item tax mode, which EN 16931 allows (KoSIT passes) but Mustang's arithmetic check flags.
+b2c-gross-item-tax.pdf     # taxCalculation 'items'
+b2c-gross-vendure-tax.pdf  # taxCalculation 'items'
+credit-note-goodwill.pdf   # credit note with per-item tax; credit notes are not offered in v1

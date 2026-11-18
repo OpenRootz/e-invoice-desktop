@@ -46,7 +46,13 @@ for pdf in "${pdfs[@]}"; do
   echo "$out" > "$REPORTS/${pdf%.pdf}.mustang.xml"
   # The report has a summary for the PDF part, the XML part and, last, the whole file: only the last one counts
   overall=$(echo "$out" | grep -o '<summary status="[a-z]*"/>' | tail -n 1 || true)
-  if [ "$overall" = '<summary status="valid"/>' ]; then echo "   valid"; else echo "   INVALID (see $REPORTS/${pdf%.pdf}.mustang.xml)"; failed=1; fi
+  # Warnings (e.g. arithmetic checks) do not make the file invalid, but receivers' validators show them: fail on them too
+  warnings=$(echo "$out" | grep -c '<warning' || true)
+  if [ "$overall" != '<summary status="valid"/>' ]; then echo "   INVALID (see $REPORTS/${pdf%.pdf}.mustang.xml)"; failed=1
+  elif [ "$warnings" != 0 ] && sed 's/#.*//' "$ROOT/test/validate/mustang-known-warnings.txt" | grep -qx "[[:space:]]*$(basename "$pdf")[[:space:]]*"; then
+    echo "   valid ($warnings known warning(s), see mustang-known-warnings.txt)"
+  elif [ "$warnings" != 0 ]; then echo "   $warnings WARNING(S) (see $REPORTS/${pdf%.pdf}.mustang.xml)"; failed=1
+  else echo "   valid"; fi
 
   echo "== veraPDF (PDF/A-3b): $pdf"
   if docker run --rm -v "$DIR:/data:ro" "$VERAPDF_IMAGE" --flavour 3b --format text "/data/$pdf" | tee "$REPORTS/${pdf%.pdf}.verapdf.txt" | grep -q '^PASS'; then

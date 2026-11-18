@@ -47,7 +47,7 @@ describe('buildInvoice', () => {
     expect(m.totals!.grandTotal).toBe(4177);
     expect(m.totals!.roundingAmount).toBe(0);
     expect(m.totals!.duePayable).toBe(4177);
-    expect(m.totals!.taxCalculation).toBe('items');
+    expect(m.totals!.taxCalculation).toBe('en16931');
     expect(lineInvariantHolds(m)).toBe(true);
     expect(m.meta).toEqual({ pricesIncludeTax: true, priceDisplay: 'gross' });
     expect(m.lines[0].display).toEqual({ grossUnitPrice: 399, grossAmount: 1197 });

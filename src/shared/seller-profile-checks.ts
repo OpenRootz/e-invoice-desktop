@@ -8,7 +8,8 @@ export interface ProfileIssues {
 }
 
 export type ProfileErrorCode = 'required' | 'taxIdRequired' | 'identifierRequired' | 'ibanRequired';
-export type ProfileWarningCode = 'countryInvalid' | 'vatIdInvalid' | 'ibanInvalid' | 'bicInvalid' | 'emailInvalid' | 'wIdNrFormat';
+export type ProfileWarningCode =
+  'countryInvalid' | 'vatIdInvalid' | 'ibanInvalid' | 'bicInvalid' | 'emailInvalid' | 'wIdNrFormat' | 'phoneDigits';
 
 /** Wirtschafts-Identifikationsnummer: `DE` + 9 digits + `-` + 5 digits */
 const W_IDNR_RE = /^DE\d{9}-\d{5}$/;
@@ -57,6 +58,9 @@ export function checkSellerProfile(profile: SellerProfile): ProfileIssues {
   }
   const wIdNr = seller.identifier?.id;
   if (!blank(wIdNr) && !W_IDNR_RE.test(normalizeCode(wIdNr!))) warnings['seller.identifier.id'] = 'wIdNrFormat';
+  // BR-DE-27 (XRechnung): a phone number has at least three digits; validators report it for ZUGFeRD as well
+  const phone = profile.seller.contact.phone;
+  if (!blank(phone) && (phone!.match(/\d/g) ?? []).length < 3) warnings['seller.contact.phone'] = 'phoneDigits';
 
   return { errors, warnings };
 }

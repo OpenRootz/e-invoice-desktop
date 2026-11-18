@@ -125,6 +125,31 @@ describe('InvoiceService', () => {
     expect((await new InvoiceService(store).write(b2b, file)).status).toBe('saved');
     await fs.copyFile(file, path.join(OUT, 'app-b2b-net.pdf'));
   });
+
+  it('computes the VAT from the totals when gross prices are entered, so strict validators find no difference', async () => {
+    await store.seller.write({ ...profile, seller: { ...profile.seller, smallBusiness: undefined, vatId: 'DE123456789' } });
+    const file = path.join(dir, 'gross.pdf');
+    // Per-line taxes: 3 × (9.99 − 8.39) = 4.80; on the total: 25.17 × 19 % = 4.78
+    const gross: InvoiceRequest = {
+      ...request,
+      lines: [1, 2, 3].map((i) => ({
+        name: `Einzelstück ${i}`,
+        quantity: '1',
+        unitCode: 'H87',
+        unitPrice: 999,
+        vat: { code: 'S', rate: '19' },
+      })),
+      shipping: { amount: 500, vat: { code: 'S', rate: '19' } },
+    };
+    expect((await new InvoiceService(store).write(gross, file)).status).toBe('saved');
+    const xml = extractFacturX(await fs.readFile(file));
+    // 25.17 + 4.20 = 29.37 net; 29.37 × 19 % = 5.58; 34.95 + 0.02 rounding = 34.97 = 3 × 9.99 + 5.00
+    expect(xml).toContain('<ram:TaxBasisTotalAmount>29.37</ram:TaxBasisTotalAmount>');
+    expect(xml).toContain('<ram:TaxTotalAmount currencyID="EUR">5.58</ram:TaxTotalAmount>');
+    expect(xml).toContain('<ram:RoundingAmount>0.02</ram:RoundingAmount>');
+    expect(xml).toContain('<ram:DuePayableAmount>34.97</ram:DuePayableAmount>');
+    await fs.copyFile(file, path.join(OUT, 'app-gross-vat-rounding.pdf'));
+  });
 });
 
 describe('invoiceFileName', () => {

@@ -121,6 +121,7 @@ export const en: Messages = {
       bicInvalid: 'The BIC is not in a valid format.',
       emailInvalid: 'The email address looks invalid.',
       wIdNrFormat: 'Expected format: DE123456789-00001.',
+      phoneDigits: 'A phone number needs at least three digits.',
     },
   },
   customers: {

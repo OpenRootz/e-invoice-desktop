@@ -97,7 +97,9 @@ function taxInGross(gross: Money, vat: VatCategory): Money {
  *   BT-131 line net amount = line gross − line tax
  * - BT-146 net unit price = gross unit price × 100 / (100 + rate), rounded; the difference between
  *   quantity × net unit price − net discount and BT-131 becomes a technical rounding allowance or charge on the line
- * - VAT per rate is the sum of the line taxes (`taxCalculation: 'items'`)
+ * - VAT per rate = rate × the net total of that rate (`taxCalculation: 'en16931'`); the cent difference to the sum of
+ *   the entered gross amounts becomes the rounding amount BT-114, so the payable amount is exactly what was entered.
+ *   (Summing the line taxes is allowed by EN 16931 too, but strict validators such as Mustang warn about it.)
  *
  * Small businesses (§ 19 UStG): prices are final amounts without VAT; every item gets category `E` with the note.
  * The price display follows the buyer: net for businesses, gross for consumers.
@@ -147,7 +149,7 @@ export function buildInvoice(draft: InvoiceDraft): EInvoiceModel {
       prepaidAmount: 0,
       reference: draft.payment.paid ? undefined : draft.number,
     },
-    taxCalculation: 'items',
+    taxCalculation: 'en16931',
     meta: {
       pricesIncludeTax: gross,
       priceDisplay: draft.buyer.isBusiness ? 'net' : 'gross',

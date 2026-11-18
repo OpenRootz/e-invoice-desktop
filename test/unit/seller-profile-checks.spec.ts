@@ -55,4 +55,12 @@ describe('checkSellerProfile', () => {
     p.bank = { iban: 'DE00120300000000202051' };
     expect(checkSellerProfile(p)).toEqual({ errors: {}, warnings: { 'seller.identifier.id': 'wIdNrFormat', 'bank.iban': 'ibanInvalid' } });
   });
+
+  it('warns about a phone number with fewer than three digits (BR-DE-27)', () => {
+    const p = complete();
+    p.seller.contact.phone = '01';
+    expect(checkSellerProfile(p).warnings).toEqual({ 'seller.contact.phone': 'phoneDigits' });
+    p.seller.contact.phone = '+49 341 987654';
+    expect(checkSellerProfile(p).warnings).toEqual({});
+  });
 });

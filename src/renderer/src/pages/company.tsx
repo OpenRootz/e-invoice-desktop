@@ -190,7 +190,7 @@ export function CompanyPage() {
               )}
             />
           </Field>
-          <Field label={t('company.phone')} error={error('seller.contact.phone')}>
+          <Field label={t('company.phone')} error={error('seller.contact.phone')} warning={warning('seller.contact.phone')}>
             <Input
               type="tel"
               {...text(

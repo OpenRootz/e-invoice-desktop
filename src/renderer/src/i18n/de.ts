@@ -120,6 +120,7 @@ export const de = {
       bicInvalid: 'Der BIC hat kein gültiges Format.',
       emailInvalid: 'Die E-Mail-Adresse sieht ungültig aus.',
       wIdNrFormat: 'Erwartet wird das Format DE123456789-00001.',
+      phoneDigits: 'Eine Telefonnummer braucht mindestens drei Ziffern.',
     },
   },
   customers: {
