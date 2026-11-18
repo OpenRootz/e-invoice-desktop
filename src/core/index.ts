@@ -11,3 +11,4 @@ export * from './xml';
 export * from './pdf';
 export * from './labels';
 export * from './small-business';
+export * from './draft';

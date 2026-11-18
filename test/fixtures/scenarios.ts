@@ -1,6 +1,7 @@
 import {
   applySmallBusiness,
   buildCreditNote,
+  buildInvoice,
   calculate,
   CreditNoteRequest,
   EInvoiceFormat,
@@ -326,6 +327,49 @@ export const scenarios: Scenario[] = [
       }),
       mappingLabels('de').smallBusiness,
     ),
+  }),
+
+  scenario({
+    name: 'draft-gross-paid',
+    description: 'Built from a draft with gross prices: line discount, unit price rounding, shipping, already paid',
+    // The app only produces ZUGFeRD; XRechnung would need a buyer reference (BT-10)
+    formats: ['zugferd'],
+    model: buildInvoice({
+      number: 'RE-2026-0042',
+      issueDate: '2026-11-18',
+      deliveryDate: '2026-11-17',
+      language: 'de',
+      pricesIncludeTax: true,
+      seller: {
+        name: 'Laden Beispiel e.K.',
+        address: { line1: 'Hauptstraße 1', postalCode: '10115', city: 'Berlin', countryCode: 'DE' },
+        vatId: 'DE123456789',
+        taxNumber: '27/123/45678',
+        contact: { name: 'Lena Laden', phone: '+49 30 123456', email: 'lena@example.com' },
+        electronicAddress: { scheme: 'EM', value: 'lena@example.com' },
+      },
+      buyer: {
+        name: 'Erika Mustermann',
+        isBusiness: false,
+        address: { line1: 'Heidestraße 17', postalCode: '51147', city: 'Köln', countryCode: 'DE' },
+        electronicAddress: { scheme: 'EM', value: 'erika@example.com' },
+      },
+      lines: [
+        { name: 'Kugelschreiber', sellerItemId: 'KS-1', quantity: '7', unitCode: 'H87', unitPrice: 99, vat: VAT_19 },
+        {
+          name: 'Keramiktasse',
+          sellerItemId: 'TAS-1',
+          quantity: '2',
+          unitCode: 'H87',
+          unitPrice: 1190,
+          discount: { amount: 238, reason: 'Rabatt 10 %' },
+          vat: VAT_19,
+        },
+        { name: 'Kochbuch', sellerItemId: 'BUCH-1', quantity: '1', unitCode: 'H87', unitPrice: 2490, vat: VAT_7 },
+      ],
+      shipping: { amount: 490, vat: VAT_19 },
+      payment: { means: [{ code: '10', text: 'Barzahlung' }], paid: true },
+    }),
   }),
 ];
 
