@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert } from '@/components/ui/alert';
 import { MasterDataProvider, useMasterData } from '@/lib/data';
 import { cn } from '@/lib/utils';
+import { CompanyPage } from '@/pages/company';
 import { Placeholder } from '@/pages/placeholder';
 
 type PageKey = 'invoice' | 'customers' | 'products' | 'company' | 'layout' | 'settings';
@@ -13,7 +14,7 @@ const PAGES: { key: PageKey; icon: ComponentType<{ className?: string }>; Page: 
   { key: 'invoice', icon: FilePlus2, Page: Placeholder },
   { key: 'customers', icon: Users, Page: Placeholder },
   { key: 'products', icon: Package, Page: Placeholder },
-  { key: 'company', icon: Building2, Page: Placeholder },
+  { key: 'company', icon: Building2, Page: CompanyPage },
   { key: 'layout', icon: LayoutTemplate, Page: Placeholder },
   { key: 'settings', icon: SettingsIcon, Page: Placeholder },
 ];
