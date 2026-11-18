@@ -1,7 +1,7 @@
 // Development helper: starts the built app (`pnpm build` first), optionally runs a script in the page, and saves a
 // screenshot of the window.
 //   electron scripts/screenshot.cjs --user-data-dir=<dir> --out=<file.png> [--wait=ms]
-//     [--click="<button text>"] [--fill="<label text>=<value>"] ...   (run in the given order)
+//     [--click="<button text>"] [--fill="<label text>=<value>"] [--pause=<ms>] ...   (run in the given order)
 //     [--save-to=<file.pdf>]   answers the save dialog with this file
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,7 +10,7 @@ const { app, dialog } = require('electron');
 const arg = (name) => process.argv.filter((a) => a.startsWith(`--${name}=`)).map((a) => a.slice(name.length + 3));
 const out = arg('out')[0] ?? 'screenshot.png';
 // Steps in command line order
-const steps = process.argv.filter((a) => a.startsWith('--click=') || a.startsWith('--fill='));
+const steps = process.argv.filter((a) => a.startsWith('--click=') || a.startsWith('--fill=') || a.startsWith('--pause='));
 const wait = Number(arg('wait')[0] ?? 800);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const saveTo = arg('save-to')[0];
@@ -22,6 +22,10 @@ app.on('browser-window-created', (_event, win) => {
     for (const step of steps) {
       const [kind, ...rest] = step.slice(2).split('=');
       const value = rest.join('=');
+      if (kind === 'pause') {
+        await sleep(Number(value));
+        continue;
+      }
       await win.webContents.executeJavaScript(kind === 'click' ? clickScript(value) : fillScript(value), true);
       await sleep(kind === 'click' ? wait : 50);
     }

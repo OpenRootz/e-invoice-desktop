@@ -7,7 +7,7 @@ type PdfJs = typeof import('pdfjs-dist');
 let pdfjs: Promise<PdfJs> | undefined;
 
 /** Loads pdf.js only when a preview is opened (it is a large module). */
-function loadPdfJs(): Promise<PdfJs> {
+export function loadPdfJs(): Promise<PdfJs> {
   pdfjs ??= Promise.all([import('pdfjs-dist'), import('pdfjs-dist/build/pdf.worker.min.mjs?url')]).then(([lib, worker]) => {
     lib.GlobalWorkerOptions.workerSrc = worker.default;
     return lib;

@@ -8,8 +8,8 @@ app.enableSandbox();
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    width: 1440,
+    height: 920,
     minWidth: 960,
     minHeight: 640,
     show: false,

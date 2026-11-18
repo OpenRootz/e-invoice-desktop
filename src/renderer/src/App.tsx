@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next';
 
 import { Alert } from '@/components/ui/alert';
 import { MasterDataProvider, useMasterData } from '@/lib/data';
+import { confirmLeave } from '@/lib/leave-guard';
 import { cn } from '@/lib/utils';
 import { CompanyPage } from '@/pages/company';
 import { CustomersPage } from '@/pages/customers';
 import { InvoicePage } from '@/pages/invoice';
-import { Placeholder } from '@/pages/placeholder';
+import { LayoutPage } from '@/pages/layout';
 import { ProductsPage } from '@/pages/products';
 import { SettingsPage } from '@/pages/settings';
 
@@ -19,7 +20,7 @@ const PAGES: { key: PageKey; icon: ComponentType<{ className?: string }>; Page: 
   { key: 'customers', icon: Users, Page: CustomersPage },
   { key: 'products', icon: Package, Page: ProductsPage },
   { key: 'company', icon: Building2, Page: CompanyPage },
-  { key: 'layout', icon: LayoutTemplate, Page: Placeholder },
+  { key: 'layout', icon: LayoutTemplate, Page: LayoutPage },
   { key: 'settings', icon: SettingsIcon, Page: SettingsPage },
 ];
 
@@ -46,7 +47,7 @@ function Shell() {
           <button
             key={key}
             type="button"
-            onClick={() => setPage(key)}
+            onClick={() => key !== page && confirmLeave() && setPage(key)}
             aria-current={page === key ? 'page' : undefined}
             className={cn(
               'flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-background',
