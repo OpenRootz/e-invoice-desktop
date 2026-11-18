@@ -1,4 +1,4 @@
-import { Eye, FileDown, FolderOpen, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, CircleCheck, Eye, FileDown, FolderOpen, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { errorMessage, useMasterData } from '@/lib/data';
 import { formatMoney } from '@/lib/format';
+import { useNavigate } from '@/lib/navigation';
+import { cn } from '@/lib/utils';
 import { mappingLabels } from '../../../core/labels';
 import type { VatCategory } from '../../../core/model';
 import type { Issue } from '../../../shared/api';
@@ -168,7 +170,7 @@ export function InvoicePage() {
   const money = (amount: number) => formatMoney(amount, lang);
   const pricesIncludeTax = smallBusiness ? false : (profile?.pricesIncludeTax ?? true);
 
-  if (!profile) return <Alert kind="warning" title={t('invoice.noProfile')} />;
+  if (!profile) return <Onboarding />;
 
   const addProduct = (product: Product) =>
     update({
@@ -234,24 +236,31 @@ export function InvoicePage() {
     return money(pricesIncludeTax ? (line.display?.grossAmount ?? line.netAmount) : line.netAmount);
   };
 
-  return (
-    <div className="max-w-6xl space-y-5 pb-24">
-      {saved && (
-        <Alert kind="info" title={t('invoice.saved', { number: saved })}>
-          <div className="mt-2 flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => void window.api.invoice.showInFolder()}>
-              <FolderOpen /> {t('invoice.showInFolder')}
-            </Button>
-            <Button size="sm" onClick={newInvoice}>
-              <Plus /> {t('invoice.newInvoice')}
-            </Button>
-          </div>
-        </Alert>
-      )}
+  const country = (code: string) => new Intl.DisplayNames([lang], { type: 'region' }).of(code) ?? code;
+  const ready = !!request && !formInvalid && issues.length === 0 && form.lines.length > 0;
 
-      <Card>
-        <FieldGrid cols={3}>
-          <Field label={t('invoice.customer')} hint={data.customers.length ? undefined : t('invoice.noCustomers')}>
+  return (
+    <div className="flex flex-wrap items-start gap-6">
+      <div className="flex min-w-0 flex-[2_1_740px] flex-col gap-5">
+        {saved && (
+          <Alert kind="info" title={t('invoice.saved', { number: saved })}>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => void window.api.invoice.showInFolder()}>
+                <FolderOpen /> {t('invoice.showInFolder')}
+              </Button>
+              <Button size="sm" onClick={newInvoice}>
+                <Plus /> {t('invoice.newInvoice')}
+              </Button>
+            </div>
+          </Alert>
+        )}
+
+        <Card>
+          <CardTitle>{t('invoice.customer')}</CardTitle>
+          <Field
+            label={t('invoice.chooseCustomer').replace(/\s*…$/, '')}
+            hint={data.customers.length ? undefined : t('invoice.noCustomers')}
+          >
             <Select value={form.customerId} onChange={(e) => update({ customerId: e.target.value })}>
               <option value="">{t('invoice.chooseCustomer')}</option>
               {data.customers.map((c) => (
@@ -261,170 +270,189 @@ export function InvoicePage() {
               ))}
             </Select>
           </Field>
-          <Field
-            label={t('invoice.number')}
-            hint={t('invoice.numberHint')}
-            error={form.number.trim() ? undefined : t('company.errors.required')}
-          >
-            <Input value={form.number} onChange={(e) => update({ number: e.target.value, numberEdited: true })} />
-          </Field>
-          <Field label={`${t('invoice.orderReference')} (${t('common.optional')})`}>
-            <Input value={form.orderReference} onChange={(e) => update({ orderReference: e.target.value })} />
-          </Field>
-          <Field label={t('invoice.issueDate')}>
-            <Input type="date" value={form.issueDate} onChange={(e) => update({ issueDate: e.target.value })} />
-          </Field>
-          <Field label={t('invoice.deliveryDate')}>
-            <Input type="date" value={form.deliveryDate} onChange={(e) => update({ deliveryDate: e.target.value })} />
-          </Field>
-          <Field label={t('invoice.language')}>
-            <Select value={form.language} onChange={(e) => update({ language: e.target.value as InvoiceForm['language'] })}>
-              <option value="">
-                {t('customers.defaultLanguage', { language: t(`languages.${customer?.invoiceLanguage ?? profile.invoiceLanguage}`) })}
-              </option>
-              <option value="de">{t('languages.de')}</option>
-              <option value="en">{t('languages.en')}</option>
-            </Select>
-          </Field>
-        </FieldGrid>
-      </Card>
+          {customer && (
+            <div className="mt-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-2.5 text-[13.5px] leading-normal text-muted-foreground">
+              <span>
+                {[
+                  customer.buyer.address.line1,
+                  `${customer.buyer.address.postalCode} ${customer.buyer.address.city}`,
+                  country(customer.buyer.address.countryCode),
+                ].join(', ')}
+              </span>
+              <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-medium text-success">
+                {customer.buyer.isBusiness ? t('invoice.customerBusiness') : t('invoice.customerConsumer')}
+                {!smallBusiness && ` · ${customer.buyer.isBusiness ? t('invoice.netPrices') : t('invoice.grossPrices')}`}
+              </span>
+            </div>
+          )}
+        </Card>
 
-      <Card>
-        <CardTitle>{t('invoice.lines')}</CardTitle>
-        {form.lines.length > 0 && (
-          <div className="mb-3 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-muted-foreground">
-                  <th className="pb-2 font-medium">{t('invoice.columns.name')}</th>
-                  <th className="w-20 pb-2 font-medium">{t('invoice.columns.quantity')}</th>
-                  <th className="w-32 pb-2 font-medium">{t('invoice.columns.unit')}</th>
-                  <th className="w-32 pb-2 font-medium">
-                    {smallBusiness
-                      ? t('invoice.columns.price')
-                      : pricesIncludeTax
-                        ? t('invoice.columns.priceGross')
-                        : t('invoice.columns.priceNet')}
-                  </th>
-                  <th className="w-24 pb-2 font-medium">{t('invoice.columns.discount')}</th>
-                  {!smallBusiness && <th className="w-28 pb-2 font-medium">{t('invoice.columns.vat')}</th>}
-                  <th className="w-28 pb-2 text-right font-medium">{t('invoice.columns.amount')}</th>
-                  <th className="w-10" />
-                </tr>
-              </thead>
-              <tbody>
-                {form.lines.map((l) => {
-                  const e = errors[l.key] ?? {};
-                  return (
-                    <tr key={l.key} className="align-top">
-                      <td className="py-1 pr-2">
-                        <Input
-                          aria-label={t('invoice.columns.name')}
-                          aria-invalid={(e.price && !l.name.trim()) || undefined}
-                          value={l.name}
-                          onChange={(ev) => updateLine(l.key, { name: ev.target.value })}
-                        />
-                      </td>
-                      <td className="py-1 pr-2">
-                        <Input
-                          aria-label={t('invoice.columns.quantity')}
-                          aria-invalid={e.quantity || undefined}
-                          inputMode="decimal"
-                          value={l.quantity}
-                          onChange={(ev) => updateLine(l.key, { quantity: ev.target.value })}
-                        />
-                      </td>
-                      <td className="py-1 pr-2">
-                        <Select
-                          aria-label={t('invoice.columns.unit')}
-                          value={l.unitCode}
-                          onChange={(ev) => updateLine(l.key, { unitCode: ev.target.value })}
-                        >
-                          {UNIT_CODES.map((code) => (
-                            <option key={code} value={code}>
-                              {t(`units.${code}`)}
-                            </option>
-                          ))}
-                        </Select>
-                      </td>
-                      <td className="py-1 pr-2">
-                        <Input
-                          aria-label={t('invoice.columns.price')}
-                          aria-invalid={(e.price && !!l.name.trim()) || undefined}
-                          inputMode="decimal"
-                          placeholder="0,00"
-                          value={l.price}
-                          onChange={(ev) => updateLine(l.key, { price: ev.target.value })}
-                        />
-                      </td>
-                      <td className="py-1 pr-2">
-                        <Input
-                          aria-label={t('invoice.columns.discount')}
-                          aria-invalid={e.discount || undefined}
-                          inputMode="decimal"
-                          value={l.discount}
-                          onChange={(ev) => updateLine(l.key, { discount: ev.target.value })}
-                        />
-                      </td>
-                      {!smallBusiness && (
-                        <td className="py-1 pr-2">
+        <Card>
+          <CardTitle>{t('invoice.details')}</CardTitle>
+          <FieldGrid cols={3}>
+            <Field
+              label={t('invoice.number')}
+              hint={t('invoice.numberHint')}
+              error={form.number.trim() ? undefined : t('company.errors.required')}
+            >
+              <Input className="font-mono" value={form.number} onChange={(e) => update({ number: e.target.value, numberEdited: true })} />
+            </Field>
+            <Field label={t('invoice.issueDate')}>
+              <Input type="date" value={form.issueDate} onChange={(e) => update({ issueDate: e.target.value })} />
+            </Field>
+            <Field label={t('invoice.deliveryDate')}>
+              <Input type="date" value={form.deliveryDate} onChange={(e) => update({ deliveryDate: e.target.value })} />
+            </Field>
+            <Field label={`${t('invoice.orderReference')} (${t('common.optional')})`}>
+              <Input value={form.orderReference} onChange={(e) => update({ orderReference: e.target.value })} />
+            </Field>
+            <Field label={t('invoice.language')}>
+              <Select value={form.language} onChange={(e) => update({ language: e.target.value as InvoiceForm['language'] })}>
+                <option value="">
+                  {t('customers.defaultLanguage', { language: t(`languages.${customer?.invoiceLanguage ?? profile.invoiceLanguage}`) })}
+                </option>
+                <option value="de">{t('languages.de')}</option>
+                <option value="en">{t('languages.en')}</option>
+              </Select>
+            </Field>
+          </FieldGrid>
+        </Card>
+
+        <Card>
+          <CardTitle>{t('invoice.lines')}</CardTitle>
+          {form.lines.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-muted-foreground">
+                    <th className="min-w-[140px] pb-2 font-medium">{t('invoice.columns.name')}</th>
+                    <th className="w-16 pb-2 font-medium">{t('invoice.columns.quantity')}</th>
+                    <th className="w-[104px] pb-2 font-medium">{t('invoice.columns.unit')}</th>
+                    <th className="w-[104px] pb-2 font-medium">
+                      {smallBusiness
+                        ? t('invoice.columns.price')
+                        : pricesIncludeTax
+                          ? t('invoice.columns.priceGross')
+                          : t('invoice.columns.priceNet')}
+                    </th>
+                    <th className="w-[72px] pb-2 font-medium">{t('invoice.columns.discount')}</th>
+                    {!smallBusiness && <th className="w-24 pb-2 font-medium">{t('invoice.columns.vat')}</th>}
+                    <th className="w-[88px] pb-2 text-right font-medium">{t('invoice.columns.amount')}</th>
+                    <th className="w-10" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.lines.map((l) => {
+                    const e = errors[l.key] ?? {};
+                    return (
+                      <tr key={l.key} className="border-t border-border align-top">
+                        <td className="py-1.5 pr-2">
+                          <Input
+                            aria-label={t('invoice.columns.name')}
+                            aria-invalid={(e.price && !l.name.trim()) || undefined}
+                            value={l.name}
+                            onChange={(ev) => updateLine(l.key, { name: ev.target.value })}
+                          />
+                        </td>
+                        <td className="py-1.5 pr-2">
+                          <Input
+                            aria-label={t('invoice.columns.quantity')}
+                            aria-invalid={e.quantity || undefined}
+                            inputMode="decimal"
+                            value={l.quantity}
+                            onChange={(ev) => updateLine(l.key, { quantity: ev.target.value })}
+                          />
+                        </td>
+                        <td className="py-1.5 pr-2">
                           <Select
-                            aria-label={t('invoice.columns.vat')}
-                            value={l.vatKey}
-                            onChange={(ev) => updateLine(l.key, { vatKey: ev.target.value as VatKey })}
+                            aria-label={t('invoice.columns.unit')}
+                            value={l.unitCode}
+                            onChange={(ev) => updateLine(l.key, { unitCode: ev.target.value })}
                           >
-                            {VAT_PRESETS.map((v) => (
-                              <option key={v.key} value={v.key}>
-                                {t(`vat.${v.key}`).split(' (')[0]}
+                            {UNIT_CODES.map((code) => (
+                              <option key={code} value={code}>
+                                {t(`units.${code}`)}
                               </option>
                             ))}
                           </Select>
                         </td>
-                      )}
-                      <td className="py-1 pt-3 text-right tabular-nums">{lineAmount(l.key)}</td>
-                      <td className="py-1 text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t('invoice.removeLine')}
-                          onClick={() => update({ lines: form.lines.filter((x) => x.key !== l.key) })}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <div className="flex flex-wrap gap-2">
-          {data.products.length > 0 && (
-            <Select
-              aria-label={t('invoice.addProduct')}
-              className="w-72"
-              value=""
-              onChange={(e) => {
-                const product = data.products.find((p) => p.id === e.target.value);
-                if (product) addProduct(product);
-              }}
-            >
-              <option value="">{t('invoice.addProduct')}</option>
-              {data.products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
+                        <td className="py-1.5 pr-2">
+                          <Input
+                            aria-label={t('invoice.columns.price')}
+                            aria-invalid={(e.price && !!l.name.trim()) || undefined}
+                            inputMode="decimal"
+                            placeholder="0,00"
+                            value={l.price}
+                            onChange={(ev) => updateLine(l.key, { price: ev.target.value })}
+                          />
+                        </td>
+                        <td className="py-1.5 pr-2">
+                          <Input
+                            aria-label={t('invoice.columns.discount')}
+                            aria-invalid={e.discount || undefined}
+                            inputMode="decimal"
+                            value={l.discount}
+                            onChange={(ev) => updateLine(l.key, { discount: ev.target.value })}
+                          />
+                        </td>
+                        {!smallBusiness && (
+                          <td className="py-1.5 pr-2">
+                            <Select
+                              aria-label={t('invoice.columns.vat')}
+                              value={l.vatKey}
+                              onChange={(ev) => updateLine(l.key, { vatKey: ev.target.value as VatKey })}
+                            >
+                              {VAT_PRESETS.map((v) => (
+                                <option key={v.key} value={v.key}>
+                                  {t(`vat.${v.key}`).split(' (')[0]}
+                                </option>
+                              ))}
+                            </Select>
+                          </td>
+                        )}
+                        <td className="py-1.5 pt-4 text-right font-semibold whitespace-nowrap tabular-nums">{lineAmount(l.key)}</td>
+                        <td className="py-1.5 text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t('invoice.removeLine')}
+                            onClick={() => update({ lines: form.lines.filter((x) => x.key !== l.key) })}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-          <Button variant="outline" onClick={addFreeLine}>
-            <Plus /> {t('invoice.addFreeLine')}
-          </Button>
-        </div>
-      </Card>
+          <div className={cn('flex flex-wrap gap-3', form.lines.length > 0 && 'mt-4 border-t border-border pt-4')}>
+            {data.products.length > 0 && (
+              <Select
+                aria-label={t('invoice.addProduct')}
+                className="w-72 font-medium"
+                value=""
+                onChange={(e) => {
+                  const product = data.products.find((p) => p.id === e.target.value);
+                  if (product) addProduct(product);
+                }}
+              >
+                <option value="">{t('invoice.addProduct')}</option>
+                {data.products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+            <Button variant="outline" onClick={addFreeLine}>
+              <Plus /> {t('invoice.addFreeLine')}
+            </Button>
+          </div>
+        </Card>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardTitle>{t('invoice.payment')}</CardTitle>
           <div className="space-y-4">
@@ -467,30 +495,32 @@ export function InvoicePage() {
             </Field>
           </div>
         </Card>
+      </div>
 
+      <aside className="sticky top-0 flex max-w-[340px] min-w-0 flex-[1_1_300px] flex-col gap-4">
         <Card>
           <CardTitle>{t('invoice.summary')}</CardTitle>
           {totals ? (
-            <dl className="space-y-1.5 tabular-nums">
+            <dl className="tabular-nums">
               {!smallBusiness && (
                 <>
                   <div className="flex justify-between">
                     <dt>{t('invoice.net')}</dt>
-                    <dd>{money(totals.taxBasisTotal)}</dd>
+                    <dd className="text-foreground">{money(totals.taxBasisTotal)}</dd>
                   </div>
                   {totals.vat.map((v) => (
-                    <div key={`${v.category.code}${v.category.rate}`} className="flex justify-between text-muted-foreground">
+                    <div key={`${v.category.code}${v.category.rate}`} className="flex justify-between py-2 text-muted-foreground">
                       <dt>{t('invoice.vatLine', { rate: v.category.rate.replace('.', lang === 'de' ? ',' : '.') })}</dt>
-                      <dd>{money(v.taxAmount)}</dd>
+                      <dd className="text-foreground">{money(v.taxAmount)}</dd>
                     </div>
                   ))}
                 </>
               )}
-              <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
-                <dt>{t('invoice.total')}</dt>
-                <dd>{money(totals.grandTotal + totals.roundingAmount)}</dd>
+              <div className="mt-2 flex items-baseline justify-between border-t border-border pt-3.5">
+                <dt className="text-[15px] font-semibold">{t('invoice.total')}</dt>
+                <dd className="font-heading text-[28px] leading-none font-bold">{money(totals.grandTotal + totals.roundingAmount)}</dd>
               </div>
-              <p className="pt-1 text-xs text-muted-foreground">
+              <p className="pt-3 text-[13px] text-muted-foreground">
                 {form.paid
                   ? t('invoice.paidNote')
                   : prepared?.model.payment.dueDate &&
@@ -501,35 +531,106 @@ export function InvoicePage() {
             <p className="text-muted-foreground">{customer ? '' : t('invoice.chooseCustomer')}</p>
           )}
         </Card>
-      </div>
 
-      {customer && issues.length > 0 && (
-        <Alert kind="warning" title={t('invoice.issuesTitle')}>
-          <ul className="list-disc space-y-0.5 pl-4">
-            {issues.map((i) => (
-              <li key={`${i.code}${i.path ?? ''}`}>{issueText(i)}</li>
-            ))}
-          </ul>
-        </Alert>
-      )}
-      {exportError && <Alert kind="error" title={t('invoice.exportFailed', { message: exportError })} />}
-
-      <div className="fixed right-0 bottom-0 left-56 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-6 py-3">
-        <Button
-          variant="outline"
-          onClick={showPreview}
-          disabled={!request || formInvalid || form.lines.length === 0 || preview === 'loading'}
-        >
-          <Eye /> {t('invoice.preview')}
-        </Button>
-        <Button onClick={exportPdf} disabled={!request || formInvalid || issues.length > 0 || !!saved}>
-          <FileDown /> {t('invoice.create')}
-        </Button>
-      </div>
+        <Card className="flex flex-col gap-3.5">
+          {customer && issues.length > 0 ? (
+            <div role="status" className="rounded-[10px] bg-warning-soft px-3 py-2.5 text-[13.5px] leading-snug text-warning">
+              <p className="mb-1.5 flex items-center gap-2.5 font-medium">
+                <AlertTriangle className="size-5 shrink-0" strokeWidth={1.75} />
+                {t('invoice.issuesTitle')}
+              </p>
+              <ul className="list-disc space-y-0.5 pl-[50px] text-foreground">
+                {issues.map((i) => (
+                  <li key={`${i.code}${i.path ?? ''}`}>{issueText(i)}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            ready && (
+              <p
+                role="status"
+                className="flex items-center gap-2.5 rounded-[10px] bg-success-soft px-3 py-2.5 text-[13.5px] font-medium text-success"
+              >
+                <CircleCheck className="size-5 shrink-0" strokeWidth={2} />
+                {t('invoice.complete')}
+              </p>
+            )
+          )}
+          {exportError && <Alert kind="error" title={t('invoice.exportFailed', { message: exportError })} />}
+          <Button className="w-full" onClick={exportPdf} disabled={!request || formInvalid || issues.length > 0 || !!saved}>
+            {saved ? <Check /> : <FileDown />} {t('invoice.create')}
+          </Button>
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={showPreview}
+            disabled={!request || formInvalid || form.lines.length === 0 || preview === 'loading'}
+          >
+            <Eye /> {t('invoice.preview')}
+          </Button>
+          <p className="text-[12.5px] leading-normal text-muted-foreground">{t('invoice.retention')}</p>
+        </Card>
+      </aside>
 
       {preview && preview !== 'loading' && (
         <PdfPreviewDialog pdf={preview.pdf} title={`${t('invoice.preview')} ${form.number}`} onClose={() => setPreview(undefined)} />
       )}
     </div>
+  );
+}
+
+const STEPS = ['company', 'customer', 'invoice'] as const;
+const FACTS = ['local', 'open', 'free'] as const;
+
+/** Shown instead of the form until "My company" is filled in. */
+function Onboarding() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    <Card className="flex max-w-[760px] flex-col gap-7 p-8">
+      <ol className="flex flex-wrap gap-4">
+        {STEPS.map((step, i) => (
+          <li key={step} className="flex flex-[1_1_180px] items-center gap-3">
+            <span
+              className={cn(
+                'flex size-8 shrink-0 items-center justify-center rounded-full border-[1.5px] text-sm font-semibold',
+                i === 0 ? 'border-primary bg-primary text-white' : 'border-input bg-background text-muted-foreground',
+              )}
+              aria-current={i === 0 ? 'step' : undefined}
+            >
+              {i + 1}
+            </span>
+            <span>
+              <span className="block text-sm font-semibold">{t(`invoice.onboarding.${step}Title`)}</span>
+              <span className="block text-[12.5px] text-muted-foreground">{t(`invoice.onboarding.${step}Text`)}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <div className="flex items-start gap-3.5 rounded-xl bg-warning-soft px-[18px] py-4 text-warning">
+        <AlertTriangle className="mt-px size-[22px] shrink-0" strokeWidth={1.75} />
+        <p className="leading-normal">
+          <strong className="font-semibold">{t('invoice.noProfile')}</strong>
+          <br />
+          {t('company.intro')}
+        </p>
+      </div>
+      <div>
+        <Button onClick={() => navigate('company')}>{t('invoice.onboarding.action')}</Button>
+      </div>
+      <div className="flex flex-wrap gap-5 border-t border-border pt-6">
+        {FACTS.map((fact) => (
+          <div key={fact} className="flex flex-[1_1_180px] items-start gap-2.5">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-success-soft text-success">
+              <Check className="size-[18px]" strokeWidth={2} />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold">{t(`invoice.onboarding.${fact}Title`)}</span>
+              <span className="block text-[13px] leading-normal text-muted-foreground">{t(`invoice.onboarding.${fact}Text`)}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

@@ -1,7 +1,16 @@
 import type { Messages } from './de';
 
 export const en: Messages = {
-  app: { name: 'E-Invoice Desktop', loading: 'Loading …', storeWarning: 'A file was damaged and has been moved aside' },
+  app: {
+    name: 'E-Invoice Desktop',
+    shortName: 'E-Invoice',
+    by: 'by openrootz',
+    navigation: 'Main navigation',
+    freeTitle: 'Free and open.',
+    freeText: 'Open source, free of charge – your data stays on your computer.',
+    loading: 'Loading …',
+    storeWarning: 'A file was damaged and has been moved aside',
+  },
   nav: {
     invoice: 'Create invoice',
     customers: 'Customers',
@@ -26,6 +35,7 @@ export const en: Messages = {
     errorSaving: 'Saving failed: {{message}}',
   },
   company: {
+    localNote: 'All details stay on your computer.',
     intro:
       'This information appears on every invoice. Required fields are mandatory for e-invoices (EN 16931) and German VAT law (§ 14 UStG).',
     complete: 'All required information is present.',
@@ -135,6 +145,7 @@ export const en: Messages = {
     columns: { name: 'Name', type: 'Type', city: 'City', email: 'Email' },
   },
   products: {
+    hint: 'Products save time: add them once, insert them into any invoice with one click.',
     empty: 'No products yet. Add products or services to insert them into invoices quickly.',
     new: 'New product',
     edit: 'Edit product',
@@ -169,6 +180,12 @@ export const en: Messages = {
   },
   vat: { S19: '19 % (standard)', S7: '7 % (reduced)', Z0: '0 % (zero rate, e.g. solar panels)', none: 'none (small business)' },
   settings: {
+    uiLanguageHint: 'Applies to the app itself.',
+    nextNumber: 'Next invoice number',
+    about: 'About E-Invoice Desktop',
+    aboutText: 'Free software by openrootz. Open source, fair prices, digital sovereignty: your data belongs to you and stays with you.',
+    sourceCode: 'Source code',
+    license: 'Licence: MIT',
     uiLanguage: 'Interface language',
     numbering: 'Invoice numbers',
     numberingIntro:
@@ -185,6 +202,29 @@ export const en: Messages = {
     version: 'Version {{version}}',
   },
   invoice: {
+    intro: 'Step by step to a valid e-invoice.',
+    details: 'Invoice details',
+    customerBusiness: 'Business customer',
+    customerConsumer: 'Private customer',
+    netPrices: 'net prices',
+    grossPrices: 'gross prices',
+    complete: 'All mandatory details present',
+    retention: 'The app does not keep issued invoices – keep the PDF file for 8 years.',
+    onboarding: {
+      companyTitle: 'My company',
+      companyText: 'Enter the mandatory details',
+      customerTitle: 'Add a customer',
+      customerText: 'Who receives the invoice?',
+      invoiceTitle: 'Create the invoice',
+      invoiceText: 'Issue it as an e-invoice',
+      action: 'Fill in My company',
+      localTitle: 'Stored locally',
+      localText: 'Your master data stays on your computer.',
+      openTitle: 'Open source',
+      openText: 'The source code is open and can be checked.',
+      freeTitle: 'Free of charge',
+      freeText: 'No subscription, no account, no catch.',
+    },
     noProfile: 'Please fill in “My business” first.',
     customer: 'Customer',
     chooseCustomer: 'Choose customer …',

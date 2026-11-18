@@ -102,8 +102,7 @@ export function CompanyPage() {
 
   const s = profile.seller;
   return (
-    <div className="max-w-4xl space-y-5 pb-20">
-      <p className="text-muted-foreground">{t('company.intro')}</p>
+    <div className="max-w-[900px] space-y-5 pb-24">
       {complete ? <Alert kind="info" title={t('company.complete')} /> : <Alert kind="warning" title={t('company.incomplete')} />}
 
       <Card>
@@ -227,20 +226,24 @@ export function CompanyPage() {
       <Card>
         <CardTitle>{t('company.sections.tax')}</CardTitle>
         <div className="space-y-4">
-          <div className="flex items-start gap-3 rounded-md bg-muted/60 p-3">
+          <div className="flex items-start gap-3.5 rounded-xl bg-page px-4 py-3.5">
             <Switch
+              className="mt-0.5"
               id="small-business"
               checked={!!s.smallBusiness}
               onCheckedChange={(checked) => update((p) => (p.seller.smallBusiness = checked))}
             />
             <div className="space-y-1">
-              <Label htmlFor="small-business">{t('company.smallBusiness')}</Label>
-              <p className="text-xs text-muted-foreground">{t('company.smallBusinessHint')}</p>
+              <Label htmlFor="small-business" className="text-sm font-semibold">
+                {t('company.smallBusiness')}
+              </Label>
+              <p className="text-[13px] leading-normal text-muted-foreground">{t('company.smallBusinessHint')}</p>
             </div>
           </div>
           <FieldGrid>
             <Field label={t('company.taxNumber')} error={error('seller.taxNumber')}>
               <Input
+                className="font-mono"
                 {...text(
                   'taxNumber',
                   (p) => p.seller.taxNumber,
@@ -250,6 +253,7 @@ export function CompanyPage() {
             </Field>
             <Field label={t('company.vatId')} warning={warning('seller.vatId')}>
               <Input
+                className="font-mono"
                 {...text(
                   'vatId',
                   (p) => p.seller.vatId,
@@ -264,6 +268,7 @@ export function CompanyPage() {
               hint={t('company.wIdNrHint')}
             >
               <Input
+                className="font-mono"
                 {...text(
                   'wIdNr',
                   (p) => p.seller.identifier?.id,
@@ -302,6 +307,7 @@ export function CompanyPage() {
         <FieldGrid cols={3}>
           <Field label={t('company.iban')} error={error('bank.iban')} warning={warning('bank.iban')}>
             <Input
+              className="font-mono"
               {...text(
                 'iban',
                 (p) => p.bank?.iban,
@@ -311,6 +317,7 @@ export function CompanyPage() {
           </Field>
           <Field label={`${t('company.bic')} (${t('common.optional')})`} warning={warning('bank.bic')}>
             <Input
+              className="font-mono"
               {...text(
                 'bic',
                 (p) => p.bank?.bic,
@@ -341,8 +348,10 @@ export function CompanyPage() {
                 onCheckedChange={(checked) => update((p) => (p.pricesIncludeTax = checked))}
               />
               <div className="space-y-1">
-                <Label htmlFor="prices-include-tax">{t('company.pricesIncludeTax')}</Label>
-                <p className="text-xs text-muted-foreground">{t('company.pricesIncludeTaxHint')}</p>
+                <Label htmlFor="prices-include-tax" className="text-sm">
+                  {t('company.pricesIncludeTax')}
+                </Label>
+                <p className="text-[13px] leading-normal text-muted-foreground">{t('company.pricesIncludeTaxHint')}</p>
               </div>
             </div>
           )}
@@ -382,7 +391,7 @@ export function CompanyPage() {
       <Card>
         <CardTitle>{t('company.sections.logo')}</CardTitle>
         <div className="flex items-center gap-4">
-          <div className="flex h-20 w-40 items-center justify-center rounded-md border border-dashed border-input bg-muted/40">
+          <div className="flex h-20 w-40 items-center justify-center rounded-md border-[1.5px] border-dashed border-dash bg-page">
             {profile.logo && <img src={profile.logo} alt="" className="max-h-16 max-w-36 object-contain" />}
           </div>
           <div className="space-y-2">
@@ -396,20 +405,23 @@ export function CompanyPage() {
                 </Button>
               )}
             </div>
-            <p className={logoError ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>{logoError ?? t('company.logoHint')}</p>
+            <p className={logoError ? 'text-xs font-medium text-warning' : 'text-[12.5px] text-muted-foreground'}>
+              {logoError ?? t('company.logoHint')}
+            </p>
             <input ref={fileInput} type="file" accept={LOGO_TYPES.join(',')} className="hidden" onChange={chooseLogo} />
           </div>
         </div>
       </Card>
 
-      <div className="fixed right-0 bottom-0 left-56 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-6 py-3">
+      <div className="fixed right-0 bottom-0 left-[248px] flex items-center justify-end gap-4 border-t border-border bg-background/95 px-10 py-4">
+        {!status && <span className="text-[13px] text-muted-foreground">{t('company.localNote')}</span>}
         {status?.kind === 'saved' && (
           <span className="flex items-center gap-1 text-sm text-success">
             <Check className="size-4" /> {t('common.saved')}
           </span>
         )}
         {status?.kind === 'error' && (
-          <span className="text-sm text-destructive">{t('common.errorSaving', { message: status.message })}</span>
+          <span className="text-sm font-medium text-warning">{t('common.errorSaving', { message: status.message })}</span>
         )}
         <Button onClick={save} disabled={saving}>
           {t('common.save')}

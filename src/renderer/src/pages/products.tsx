@@ -48,9 +48,17 @@ export function ProductsPage() {
         }
         onEdit={(p) => setEditing(structuredClone(p))}
         onDelete={remove}
+        footer={data.products.length ? t('products.hint') : undefined}
         columns={[
-          { header: t('products.columns.name'), cell: (p) => <span className="font-medium">{p.name}</span> },
-          { header: t('products.columns.sku'), cell: (p) => p.sellerItemId },
+          {
+            header: t('products.columns.name'),
+            cell: (p) => (
+              <>
+                <span className="block font-semibold">{p.name}</span>
+                {p.sellerItemId && <span className="font-mono text-xs text-muted-foreground">{p.sellerItemId}</span>}
+              </>
+            ),
+          },
           {
             header: t('products.columns.unit'),
             cell: (p) => t(`units.${p.unitCode as (typeof UNIT_CODES)[number]}`, { defaultValue: p.unitCode }),
@@ -60,14 +68,14 @@ export function ProductsPage() {
             className: 'text-right',
             cell: (p) => (
               <>
-                {formatMoney(p.price, i18n.language)}{' '}
+                <span className="font-semibold">{formatMoney(p.price, i18n.language)}</span>{' '}
                 {!smallBusiness && (
                   <span className="text-xs text-muted-foreground">{p.priceIncludesTax ? t('products.gross') : t('products.net')}</span>
                 )}
               </>
             ),
           },
-          ...(smallBusiness ? [] : [{ header: t('products.columns.vat'), cell: vatLabel }]),
+          ...(smallBusiness ? [] : [{ header: t('products.columns.vat'), className: 'text-right', cell: vatLabel }]),
         ]}
       />
       {editing && (
@@ -134,7 +142,7 @@ function ProductDialog({
       footer={
         <>
           {saveError && (
-            <span className="mr-auto self-center text-sm text-destructive">{t('common.errorSaving', { message: saveError })}</span>
+            <span className="mr-auto self-center text-sm font-medium text-warning">{t('common.errorSaving', { message: saveError })}</span>
           )}
           <Button variant="outline" onClick={onClose}>
             {t('common.cancel')}
@@ -174,7 +182,13 @@ function ProductDialog({
         </Field>
         <FieldGrid cols={3}>
           <Field label={priceLabel} error={touched && price === undefined ? t('products.invalidPrice') : undefined}>
-            <Input inputMode="decimal" placeholder="0,00" value={priceText} onChange={(e) => setPriceText(e.target.value)} />
+            <Input
+              className="text-right tabular-nums"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={priceText}
+              onChange={(e) => setPriceText(e.target.value)}
+            />
           </Field>
           <Field label={t('products.unit')}>
             <Select value={value.unitCode} onChange={(e) => update((p) => (p.unitCode = e.target.value))}>
@@ -201,7 +215,7 @@ function ProductDialog({
           )}
         </FieldGrid>
         {!smallBusiness && (
-          <div className="flex items-center gap-3">
+          <div className="flex min-h-11 items-center gap-3">
             <Switch
               id="price-includes-tax"
               checked={value.priceIncludesTax}

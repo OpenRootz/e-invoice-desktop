@@ -20,7 +20,6 @@ export function LayoutPage() {
   if (!saved) return <p className="text-muted-foreground">{t('app.loading')}</p>;
   return (
     <div className="space-y-4">
-      <p className="max-w-4xl text-muted-foreground">{t('layout.intro')}</p>
       {/* re-mounted after saving, so the saved layout becomes the new baseline */}
       <LayoutEditor
         key={version}

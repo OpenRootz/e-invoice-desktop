@@ -1,22 +1,45 @@
 @import 'tailwindcss';
+/* Fonts are bundled with the app (SIL OFL): no requests to font services */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource-variable/jetbrains-mono';
 
+/*
+ * openrootz design tokens. Contrast is checked (text >= 4.5:1, field borders >= 4.4:1); re-check when changing a
+ * colour. `background` is the surface of cards, fields and dialogs; `page` is the paper tone behind them.
+ */
 @theme {
+  --color-page: #f4f2ea;
   --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-border: #e2e8f0;
-  --color-input: #cbd5e1;
-  --color-primary: #1a5fb4;
+  --color-foreground: #17201b;
+  --color-muted: #f0eee5;
+  --color-muted-foreground: #4b5851;
+  --color-border: #dbd8cb;
+  --color-input: #747164;
+  --color-dash: #8a8777;
+  --color-primary: #2e6b4e;
+  --color-primary-hover: #245640;
   --color-primary-foreground: #ffffff;
-  --color-destructive: #b91c1c;
+  --color-success: #245640;
+  --color-success-soft: #e3efe7;
+  --color-warning: #8a3f10;
+  --color-warning-soft: #fbeedf;
+  --color-warning-border: #a04512;
+  --color-destructive: #8a3f10;
   --color-destructive-foreground: #ffffff;
-  --color-warning: #b45309;
-  --color-success: #15803d;
-  --color-ring: #1a5fb4;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --color-ring: #2e6b4e;
+  --color-side: #1b2620;
+  --color-side-active: #2c3d33;
+  --color-side-text: #d3ddd6;
+  --color-side-muted: #a9b9ae;
+  --color-side-accent: #9adbb4;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-card: 14px;
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-heading: 'Space Grotesk Variable', 'Inter Variable', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 }
 
 html,
@@ -26,8 +49,15 @@ body,
 }
 
 body {
-  background: var(--color-background);
+  background: var(--color-page);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   font-size: 14px;
+  accent-color: var(--color-primary);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
 }

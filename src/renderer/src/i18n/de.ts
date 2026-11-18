@@ -1,6 +1,15 @@
 /** German UI texts (default language). The English file must have the same keys. */
 export const de = {
-  app: { name: 'E-Invoice Desktop', loading: 'Lädt …', storeWarning: 'Eine Datei war beschädigt und wurde beiseitegelegt' },
+  app: {
+    name: 'E-Invoice Desktop',
+    shortName: 'E-Invoice',
+    by: 'von openrootz',
+    navigation: 'Hauptnavigation',
+    freeTitle: 'Frei und offen.',
+    freeText: 'Open Source, kostenlos – Ihre Daten bleiben auf Ihrem Rechner.',
+    loading: 'Lädt …',
+    storeWarning: 'Eine Datei war beschädigt und wurde beiseitegelegt',
+  },
   nav: {
     invoice: 'Rechnung erstellen',
     customers: 'Kunden',
@@ -25,6 +34,7 @@ export const de = {
     errorSaving: 'Speichern fehlgeschlagen: {{message}}',
   },
   company: {
+    localNote: 'Alle Angaben bleiben lokal auf Ihrem Rechner.',
     intro: 'Diese Angaben stehen auf jeder Rechnung. Pflichtfelder sind für E-Rechnungen (EN 16931) und § 14 UStG vorgeschrieben.',
     complete: 'Alle Pflichtangaben sind vorhanden.',
     incomplete: 'Es fehlen noch Pflichtangaben. Rechnungen können erst erstellt werden, wenn sie ergänzt sind.',
@@ -134,6 +144,7 @@ export const de = {
     columns: { name: 'Name', type: 'Art', city: 'Ort', email: 'E-Mail' },
   },
   products: {
+    hint: 'Produkte sparen Zeit: Einmal anlegen, in jeder Rechnung mit einem Klick einfügen.',
     empty: 'Noch keine Produkte. Legen Sie Produkte oder Leistungen an, um sie in Rechnungen schnell einzufügen.',
     new: 'Neues Produkt',
     edit: 'Produkt bearbeiten',
@@ -168,6 +179,13 @@ export const de = {
   },
   vat: { S19: '19 % (Regelsatz)', S7: '7 % (ermäßigt)', Z0: '0 % (Nullsatz, z. B. Photovoltaik)', none: 'keine (Kleinunternehmer)' },
   settings: {
+    uiLanguageHint: 'Gilt für die Bedienung der App.',
+    nextNumber: 'Nächste Rechnungsnummer',
+    about: 'Über E-Invoice Desktop',
+    aboutText:
+      'Freie Software von openrootz. Open Source, faire Preise, digitale Souveränität: Ihre Daten gehören Ihnen und bleiben bei Ihnen.',
+    sourceCode: 'Quellcode',
+    license: 'Lizenz: MIT',
     uiLanguage: 'Sprache der Oberfläche',
     numbering: 'Rechnungsnummern',
     numberingIntro:
@@ -184,6 +202,29 @@ export const de = {
     version: 'Version {{version}}',
   },
   invoice: {
+    intro: 'Schritt für Schritt zur gültigen E-Rechnung.',
+    details: 'Rechnungsdetails',
+    customerBusiness: 'Geschäftskunde',
+    customerConsumer: 'Privatkunde',
+    netPrices: 'Nettopreise',
+    grossPrices: 'Bruttopreise',
+    complete: 'Alle Pflichtangaben vorhanden',
+    retention: 'Die App speichert erstellte Rechnungen nicht – bewahren Sie die PDF-Datei 8 Jahre auf.',
+    onboarding: {
+      companyTitle: 'Mein Unternehmen',
+      companyText: 'Pflichtangaben erfassen',
+      customerTitle: 'Kunde anlegen',
+      customerText: 'Wer bekommt die Rechnung?',
+      invoiceTitle: 'Rechnung erstellen',
+      invoiceText: 'Als E-Rechnung ausgeben',
+      action: 'Mein Unternehmen ausfüllen',
+      localTitle: 'Lokal gespeichert',
+      localText: 'Ihre Stammdaten bleiben auf Ihrem Rechner.',
+      openTitle: 'Open Source',
+      openText: 'Der Quellcode ist offen und prüfbar.',
+      freeTitle: 'Kostenlos',
+      freeText: 'Ohne Abo, ohne Konto, ohne Haken.',
+    },
     noProfile: 'Bitte füllen Sie zuerst „Mein Unternehmen“ aus.',
     customer: 'Kunde',
     chooseCustomer: 'Kunde auswählen …',

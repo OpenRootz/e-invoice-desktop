@@ -1,4 +1,6 @@
 import { Check } from 'lucide-react';
+
+import { Logo } from '@/components/logo';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +15,7 @@ import type { AppInfo } from '../../../shared/api';
 import { suggestInvoiceNumber } from '../../../shared/numbering';
 import { numberingSchema, type Settings } from '../../../shared/schema';
 
+const SOURCE_URL = 'https://github.com/OpenRootz/e-invoice-desktop';
 const today = () => new Date().toLocaleDateString('sv-SE');
 
 export function SettingsPage() {
@@ -53,18 +56,22 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="max-w-[760px] space-y-5">
       <Card>
         <CardTitle>{t('settings.numbering')}</CardTitle>
         <div className="space-y-4">
-          <p className="text-muted-foreground">{t('settings.numberingIntro')}</p>
+          <p className="leading-normal text-muted-foreground">{t('settings.numberingIntro')}</p>
           <FieldGrid>
             <Field
               label={t('settings.pattern')}
               error={numberingValid ? undefined : t('settings.patternInvalid')}
               hint={t('settings.patternHint')}
             >
-              <Input value={settings.numbering.pattern} onChange={(e) => update((s) => (s.numbering.pattern = e.target.value))} />
+              <Input
+                className="font-mono"
+                value={settings.numbering.pattern}
+                onChange={(e) => update((s) => (s.numbering.pattern = e.target.value))}
+              />
             </Field>
             <Field label={t('settings.next')}>
               <Input
@@ -84,17 +91,19 @@ export function SettingsPage() {
             <Label htmlFor="reset-yearly">{t('settings.resetYearly')}</Label>
           </div>
           {numberingValid && (
-            <p className="rounded-md bg-muted px-3 py-2 font-medium">
-              {t('settings.preview', { number: suggestInvoiceNumber(effectiveNumbering, today()) })}
+            <p className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] bg-success-soft px-4 py-3.5 font-medium text-success">
+              <span>{t('settings.nextNumber')}</span>
+              <span className="font-mono text-[15px]">{suggestInvoiceNumber(effectiveNumbering, today())}</span>
             </p>
           )}
         </div>
       </Card>
 
       <Card>
-        <CardTitle>{t('settings.uiLanguage')}</CardTitle>
+        <CardTitle className="mb-2">{t('settings.uiLanguage')}</CardTitle>
+        <p className="mb-3.5 text-muted-foreground">{t('settings.uiLanguageHint')}</p>
         <Select
-          className="max-w-xs"
+          className="max-w-[280px]"
           aria-label={t('settings.uiLanguage')}
           value={settings.uiLanguage}
           onChange={(e) => update((s) => (s.uiLanguage = e.target.value as 'de' | 'en'))}
@@ -106,9 +115,24 @@ export function SettingsPage() {
 
       <Card>
         <CardTitle>{t('settings.data')}</CardTitle>
-        <p className="mb-2 text-muted-foreground">{t('settings.dataDir')}</p>
-        <code className="block rounded-md bg-muted px-3 py-2 text-xs break-all select-all">{info?.dataDir}</code>
-        {info && <p className="mt-3 text-xs text-muted-foreground">{t('settings.version', { version: info.version })}</p>}
+        <p className="mb-3 leading-normal text-muted-foreground">{t('settings.dataDir')}</p>
+        <code className="block rounded-md bg-muted px-3.5 py-3 font-mono text-[13px] break-all select-all">{info?.dataDir}</code>
+      </Card>
+
+      <Card className="flex flex-wrap items-start gap-5 border-side bg-side text-[#e8eee9]">
+        <Logo size={44} />
+        <div className="min-w-0 flex-[1_1_320px]">
+          <h2 className="mb-2 font-heading text-[17px] font-semibold text-white">{t('settings.about')}</h2>
+          <p className="mb-3.5 leading-relaxed text-[#c4d0c8]">{t('settings.aboutText')}</p>
+          {/* No links: the app opens nothing on the internet, the address can be copied */}
+          <p className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <span>
+              {t('settings.sourceCode')}: <span className="font-mono text-[13px] text-side-accent select-all">{SOURCE_URL}</span>
+            </span>
+            <span className="text-[13px] text-side-muted">{t('settings.license')}</span>
+            {info && <span className="font-mono text-[12.5px] text-side-muted">{t('settings.version', { version: info.version })}</span>}
+          </p>
+        </div>
       </Card>
 
       <div className="flex items-center justify-end gap-3">
@@ -118,7 +142,7 @@ export function SettingsPage() {
           </span>
         )}
         {status?.kind === 'error' && (
-          <span className="text-sm text-destructive">{t('common.errorSaving', { message: status.message })}</span>
+          <span className="text-sm font-medium text-warning">{t('common.errorSaving', { message: status.message })}</span>
         )}
         <Button onClick={save} disabled={!numberingValid}>
           {t('common.save')}

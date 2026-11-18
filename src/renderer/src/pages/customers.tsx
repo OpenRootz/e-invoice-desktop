@@ -57,7 +57,7 @@ export function CustomersPage() {
         onEdit={(c) => setEditing(structuredClone(c))}
         onDelete={remove}
         columns={[
-          { header: t('customers.columns.name'), cell: (c) => <span className="font-medium">{c.buyer.name}</span> },
+          { header: t('customers.columns.name'), cell: (c) => <span className="font-semibold">{c.buyer.name}</span> },
           {
             header: t('customers.columns.type'),
             cell: (c) => (c.buyer.isBusiness ? t('customers.typeBusiness') : t('customers.typeConsumer')),
@@ -133,7 +133,7 @@ function CustomerDialog({
       footer={
         <>
           {saveError && (
-            <span className="mr-auto self-center text-sm text-destructive">{t('common.errorSaving', { message: saveError })}</span>
+            <span className="mr-auto self-center text-sm font-medium text-warning">{t('common.errorSaving', { message: saveError })}</span>
           )}
           <Button variant="outline" onClick={onClose}>
             {t('common.cancel')}
@@ -142,16 +142,19 @@ function CustomerDialog({
         </>
       }
     >
-      <div className="space-y-4">
-        <div className="flex items-start gap-3">
+      <div className="space-y-[18px]">
+        <div className="flex items-start gap-3.5 rounded-xl bg-page px-4 py-3.5">
           <Switch
+            className="mt-0.5"
             id="customer-business"
             checked={b.isBusiness}
             onCheckedChange={(checked) => update((c) => (c.buyer.isBusiness = checked))}
           />
           <div className="space-y-1">
-            <Label htmlFor="customer-business">{t('customers.business')}</Label>
-            <p className="text-xs text-muted-foreground">{t('customers.businessHint')}</p>
+            <Label htmlFor="customer-business" className="text-sm font-semibold">
+              {t('customers.business')}
+            </Label>
+            <p className="text-[13px] leading-normal text-muted-foreground">{t('customers.businessHint')}</p>
           </div>
         </div>
         <FieldGrid>
@@ -233,6 +236,7 @@ function CustomerDialog({
           {b.isBusiness && (
             <Field label={`${t('customers.vatId')} (${t('common.optional')})`}>
               <Input
+                className="font-mono"
                 {...text(
                   (c) => c.buyer.vatId,
                   (c, v) => (c.buyer.vatId = v),

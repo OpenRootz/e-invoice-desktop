@@ -23,6 +23,7 @@ export function ListPage<T extends { id: string }>({
   onNew,
   onEdit,
   onDelete,
+  footer,
 }: {
   items: T[];
   columns: Column<T>[];
@@ -33,6 +34,8 @@ export function ListPage<T extends { id: string }>({
   onNew: () => void;
   onEdit: (item: T) => void;
   onDelete: (item: T) => void;
+  /** A hint below the list */
+  footer?: string;
 }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -42,24 +45,26 @@ export function ListPage<T extends { id: string }>({
   }, [items, query, searchText]);
 
   return (
-    <div className="max-w-5xl space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative max-w-sm flex-1">
-          <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+    <div className="max-w-5xl space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative max-w-[420px] flex-[1_1_300px]">
+          <Search className="absolute top-[13px] left-3.5 size-[18px] text-muted-foreground" strokeWidth={1.75} />
           <Input
-            className="pl-8"
+            className="pl-[42px]"
             placeholder={t('common.search')}
             aria-label={t('common.search')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <Button onClick={onNew} className="ml-auto">
+        <Button onClick={onNew}>
           <Plus /> {newLabel}
         </Button>
       </div>
       {items.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">{empty}</p>
+        <p className="rounded-card border-[1.5px] border-dashed border-dash px-6 py-14 text-center leading-relaxed text-muted-foreground">
+          {empty}
+        </p>
       ) : (
         <Table>
           <thead>
@@ -74,13 +79,13 @@ export function ListPage<T extends { id: string }>({
           </thead>
           <tbody>
             {shown.map((item) => (
-              <tr key={item.id} className="hover:bg-muted/40" onDoubleClick={() => onEdit(item)}>
+              <tr key={item.id} className="hover:bg-page/60" onDoubleClick={() => onEdit(item)}>
                 {columns.map((c) => (
                   <Td key={c.header} className={c.className}>
                     {c.cell(item)}
                   </Td>
                 ))}
-                <Td className="text-right whitespace-nowrap">
+                <Td className="py-1 text-right whitespace-nowrap">
                   <Button variant="ghost" size="icon" aria-label={`${t('common.edit')}: ${label(item)}`} onClick={() => onEdit(item)}>
                     <Pencil />
                   </Button>
@@ -98,6 +103,7 @@ export function ListPage<T extends { id: string }>({
           </tbody>
         </Table>
       )}
+      {footer && <p className="mx-1 text-[13px] leading-normal text-muted-foreground">{footer}</p>}
     </div>
   );
 }
