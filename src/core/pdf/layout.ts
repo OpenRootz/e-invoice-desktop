@@ -66,7 +66,7 @@ export interface BlockStyle {
 }
 
 export interface LayoutBlock {
-  /** Stable and unique within the layout (named `key`, as the Vendure API encodes `id` fields) */
+  /** Stable and unique within the layout (named `key` for compatibility with stored layouts) */
   key: string;
   type: BlockType;
   visible: boolean;

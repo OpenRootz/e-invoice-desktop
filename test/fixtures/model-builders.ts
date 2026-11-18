@@ -53,8 +53,8 @@ export function model(overrides: Partial<EInvoiceModel> = {}): EInvoiceModel {
     allowances: [],
     charges: [],
     payment: { means: [{ code: '58', iban: 'DE02120300000000202051' }], terms: '14 Tage netto', prepaidAmount: 0 },
-    taxCalculation: 'vendure',
-    meta: { orderId: '1', orderCode: 'ABC123', channelCode: 'default', pricesIncludeTax: false, priceDisplay: 'net' },
+    taxCalculation: 'items',
+    meta: { pricesIncludeTax: false, priceDisplay: 'net' },
     ...overrides,
   };
 }

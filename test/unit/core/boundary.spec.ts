@@ -11,8 +11,10 @@ function files(dir: string): string[] {
 }
 
 describe('core layer boundary', () => {
-  it('does not import Vendure or Nest', () => {
-    const offenders = files(CORE).filter((f) => /from ['"]@(vendure|nestjs)\//.test(fs.readFileSync(f, 'utf8')));
+  it('does not import Electron, React or app code', () => {
+    const offenders = files(CORE).filter((f) =>
+      /from ['"](electron|react|react-dom)['"/]|from ['"]\.\.\/(\.\.\/)*(main|preload|renderer|shared)\//.test(fs.readFileSync(f, 'utf8')),
+    );
     expect(offenders).toEqual([]);
   });
 });

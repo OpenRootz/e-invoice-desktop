@@ -10,22 +10,22 @@ function b2b(): EInvoiceModel {
       line(1000, '2', VAT_19, {
         allowances: [{ amount: 200, reason: 'Promotion: 10 % Herbstrabatt' }],
         netAmount: 1800,
-        vendureTaxAmount: 342,
+        itemTaxAmount: 342,
       }),
-      line(500, '1', VAT_19, { vendureTaxAmount: 95 }),
+      line(500, '1', VAT_19, { itemTaxAmount: 95 }),
     ],
-    charges: [{ amount: 490, reason: 'Versand DHL', reasonCode: 'FC', vat: VAT_19, vendureTaxAmount: 93 }],
+    charges: [{ amount: 490, reason: 'Versand DHL', reasonCode: 'FC', vat: VAT_19, itemTaxAmount: 93 }],
   });
 }
 
-/** B2C gross channel: 3.99 + 4.99 + 5.99, Vendure line tax 2.40 vs. EN 16931 2.39. */
-function rounding(taxCalculation: 'vendure' | 'en16931'): EInvoiceModel {
+/** B2C gross channel: 3.99 + 4.99 + 5.99, per-line tax 2.40 vs. EN 16931 2.39. */
+function rounding(taxCalculation: 'items' | 'en16931'): EInvoiceModel {
   return model({
     taxCalculation,
     lines: [
-      line(335, '1', VAT_19, { vendureTaxAmount: 64 }),
-      line(419, '1', VAT_19, { vendureTaxAmount: 80 }),
-      line(503, '1', VAT_19, { vendureTaxAmount: 96 }),
+      line(335, '1', VAT_19, { itemTaxAmount: 64 }),
+      line(419, '1', VAT_19, { itemTaxAmount: 80 }),
+      line(503, '1', VAT_19, { itemTaxAmount: 96 }),
     ],
     payment: { means: [{ code: '48', cardLast4: '1234' }], prepaidAmount: 1497 },
   });
@@ -44,13 +44,13 @@ describe('calculate', () => {
       roundingAmount: 0,
       duePayable: 3320,
       expectedTotalDifference: 0,
-      taxCalculation: 'vendure',
+      taxCalculation: 'items',
     });
     expect(t.vat).toEqual([{ category: VAT_19, basisAmount: 2790, taxAmount: 530 }]);
   });
 
-  it('vendure mode: uses the per-line tax, invoice total = paid total, no rounding amount', () => {
-    const t = calculate(rounding('vendure'), { expectedTotalWithTax: 1497 });
+  it('items mode: uses the per-line tax, invoice total = paid total, no rounding amount', () => {
+    const t = calculate(rounding('items'), { expectedTotalWithTax: 1497 });
     expect(t.vat[0]).toMatchObject({ basisAmount: 1257, taxAmount: 240 });
     expect(t).toMatchObject({ grandTotal: 1497, roundingAmount: 0, duePayable: 0, expectedTotalDifference: 0 });
     expect(t.warnings).toEqual([]);
@@ -69,8 +69,8 @@ describe('calculate', () => {
   });
 
   it('falls back to en16931 when the per-line rounding difference reaches the threshold', () => {
-    // 300 × 0.99 gross: Vendure tax 300 × 0.16 = 48.00, EN 16931 tax = 249.00 × 19 % = 47.31
-    const lines = Array.from({ length: 300 }, () => line(83, '1', VAT_19, { vendureTaxAmount: 16 }));
+    // 300 × 0.99 gross: per-line tax 300 × 0.16 = 48.00, EN 16931 tax = 249.00 × 19 % = 47.31
+    const lines = Array.from({ length: 300 }, () => line(83, '1', VAT_19, { itemTaxAmount: 16 }));
     const t = calculate(model({ lines }), { expectedTotalWithTax: 29700 });
     expect(t.taxCalculation).toBe('en16931');
     expect(t.vat[0].taxAmount).toBe(4731);
@@ -79,11 +79,11 @@ describe('calculate', () => {
     expect(t.warnings[0]).toMatch(/threshold/);
   });
 
-  it('stays in vendure mode below the threshold', () => {
-    // 100 × 0.99: Vendure 16.00 vs EN 15.77 → difference 0.23 < 0.50
-    const lines = Array.from({ length: 100 }, () => line(83, '1', VAT_19, { vendureTaxAmount: 16 }));
+  it('stays in items mode below the threshold', () => {
+    // 100 × 0.99: per-line 16.00 vs EN 15.77 → difference 0.23 < 0.50
+    const lines = Array.from({ length: 100 }, () => line(83, '1', VAT_19, { itemTaxAmount: 16 }));
     const t = calculate(model({ lines }), { expectedTotalWithTax: 9900 });
-    expect(t.taxCalculation).toBe('vendure');
+    expect(t.taxCalculation).toBe('items');
     expect(t.taxTotal).toBe(1600);
   });
 
@@ -91,9 +91,9 @@ describe('calculate', () => {
     const t = calculate(
       model({
         lines: [
-          line(1869, '1', VAT_7, { vendureTaxAmount: 131 }),
-          line(1000, '1', VAT_19, { vendureTaxAmount: 190 }),
-          line(500, '2', { code: 'S', rate: '7.00' }, { vendureTaxAmount: 70 }),
+          line(1869, '1', VAT_7, { itemTaxAmount: 131 }),
+          line(1000, '1', VAT_19, { itemTaxAmount: 190 }),
+          line(500, '2', { code: 'S', rate: '7.00' }, { itemTaxAmount: 70 }),
         ],
       }),
     );
@@ -104,28 +104,28 @@ describe('calculate', () => {
     expect(t.grandTotal).toBe(3869 + 391);
   });
 
-  it('computes EN-style tax for amounts without a Vendure tax (e.g. goodwill allowance on a credit note)', () => {
+  it('computes EN-style tax for amounts without a precomputed tax (e.g. goodwill allowance on a credit note)', () => {
     const t = calculate(
       model({
         type: 'credit_note',
-        lines: [line(1000, '1', VAT_19, { vendureTaxAmount: 190 })],
+        lines: [line(1000, '1', VAT_19, { itemTaxAmount: 190 })],
         allowances: [{ amount: 300, reason: 'Kulanz', vat: VAT_19 }],
       }),
     );
-    // base 10.00 − 3.00 = 7.00; tax = 1.90 (Vendure) − 0.57 (EN on the allowance) = 1.33
+    // base 10.00 − 3.00 = 7.00; tax = 1.90 (per line) − 0.57 (EN on the allowance) = 1.33
     expect(t.vat[0]).toMatchObject({ basisAmount: 700, taxAmount: 133 });
     expect(t).toMatchObject({ allowanceTotal: 300, taxBasisTotal: 700, grandTotal: 833 });
   });
 
-  it('reports a difference to the expected total in vendure mode instead of hiding it', () => {
-    const t = calculate(rounding('vendure'), { expectedTotalWithTax: 1500 });
+  it('reports a difference to the expected total in items mode instead of hiding it', () => {
+    const t = calculate(rounding('items'), { expectedTotalWithTax: 1500 });
     expect(t.expectedTotalDifference).toBe(3);
     expect(t.roundingAmount).toBe(0);
   });
 
   it('handles 0 % categories', () => {
     const t = calculate(
-      model({ lines: [line(2500, '1', { code: 'AE', rate: '0', exemptionReasonCode: 'VATEX-EU-AE' }, { vendureTaxAmount: 0 })] }),
+      model({ lines: [line(2500, '1', { code: 'AE', rate: '0', exemptionReasonCode: 'VATEX-EU-AE' }, { itemTaxAmount: 0 })] }),
     );
     expect(t.vat).toEqual([{ category: { code: 'AE', rate: '0', exemptionReasonCode: 'VATEX-EU-AE' }, basisAmount: 2500, taxAmount: 0 }]);
   });

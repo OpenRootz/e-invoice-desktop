@@ -94,8 +94,8 @@ export interface AllowanceCharge {
   reasonCode?: string;
   /** VAT category; required on document level, ignored on line level */
   vat?: VatCategory;
-  /** Tax as computed by Vendure for this amount (used by `taxCalculation: 'vendure'`) */
-  vendureTaxAmount?: Money;
+  /** Precomputed tax for this amount, rounded per item (used by `taxCalculation: 'items'`) */
+  itemTaxAmount?: Money;
   /** Technical rounding adjustment (gross-price channels); not serialized, hidden in gross price display */
   rounding?: boolean;
   /** Credit notes: the item of the corrected invoice this credits (not serialized) */
@@ -111,8 +111,6 @@ export type CreditReference = { line: string } | { charge: number } | { allowanc
 export interface InvoiceLine {
   /** BT-126 */
   id: string;
-  /** Vendure order line, for traceability only (not serialized) */
-  orderLineId?: string;
   /** BT-153 */
   name: string;
   /** BT-154 */
@@ -134,8 +132,8 @@ export interface InvoiceLine {
   /** BT-131 = quantity × net price − allowances + charges (exact) */
   netAmount: Money;
   vat: VatCategory;
-  /** Tax as computed by Vendure for this line */
-  vendureTaxAmount?: Money;
+  /** Precomputed tax for this line, rounded per line */
+  itemTaxAmount?: Money;
   /** For the PDF only; never written to the XML */
   display?: { grossUnitPrice?: Money; grossAmount?: Money };
   /** Credit notes: the item of the corrected invoice this line credits (not serialized) */
@@ -184,7 +182,7 @@ export interface Totals {
   warnings: string[];
 }
 
-export type TaxCalculation = 'vendure' | 'en16931';
+export type TaxCalculation = 'items' | 'en16931';
 
 export interface EInvoiceModel {
   /** Version of this structure, for migrating stored snapshots */
@@ -197,7 +195,7 @@ export interface EInvoiceModel {
   issueDate: IsoDate;
   /** BT-5 */
   currencyCode: string;
-  /** Number of decimals of `Money` values (Vendure `MoneyStrategy.precision`, usually 2) */
+  /** Number of decimals of `Money` values (usually 2) */
   amountDecimals: number;
   /** Language of the human-readable parts (PDF labels, product names) */
   language: string;
@@ -205,7 +203,7 @@ export interface EInvoiceModel {
   buyerReference: string;
   /** BT-13 purchase order reference of the buyer (e.g. their PO number) */
   orderReference?: string;
-  /** BT-14 sales order reference of the seller (the Vendure order code) */
+  /** BT-14 sales order reference of the seller (e.g. an order number) */
   salesOrderReference?: string;
   /** BG-3 (credit notes: the corrected invoice) */
   precedingInvoices: { number: string; issueDate: IsoDate }[];
@@ -239,9 +237,6 @@ export interface EInvoiceModel {
   /** Filled by `calculate()` and stored with the snapshot, so XML and PDF never recompute differently */
   totals?: Totals;
   meta: {
-    orderId: string;
-    orderCode: string;
-    channelCode: string;
     pricesIncludeTax: boolean;
     priceDisplay: 'gross' | 'net';
     /** Credit notes: refunded to the buyer (default) or offset against a new invoice (cancel and reissue) */

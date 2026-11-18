@@ -19,7 +19,7 @@ export interface Scenario {
   name: string;
   description: string;
   model: EInvoiceModel;
-  /** What the customer was charged (Vendure order total), if relevant */
+  /** What the customer was charged (e.g. sum of the gross prices), if relevant */
   expectedTotalWithTax?: Money;
   formats: EInvoiceFormat[];
 }
@@ -55,7 +55,7 @@ function lines(inputs: LineInput[]): InvoiceLine[] {
       charges: [],
       netAmount: gross - (l.allowance?.amount ?? 0),
       vat: l.vat ?? VAT_19,
-      vendureTaxAmount: l.tax,
+      itemTaxAmount: l.tax,
     };
   });
 }
@@ -94,7 +94,7 @@ export const scenarios: Scenario[] = [
         },
         { name: 'Teefilter (100 Stk.)', sku: 'TF-100', price: 500, tax: 95 },
       ]),
-      charges: [{ amount: 490, reason: 'DHL Paket', reasonCode: 'FC', vat: VAT_19, vendureTaxAmount: 93 }],
+      charges: [{ amount: 490, reason: 'DHL Paket', reasonCode: 'FC', vat: VAT_19, itemTaxAmount: 93 }],
       payment: {
         means: [{ code: '58', iban: 'DE02120300000000202051', bic: 'BYLADEM1001', accountName: 'Demo Shop GmbH' }],
         terms: 'Zahlbar innerhalb von 14 Tagen ohne Abzug.',
@@ -106,8 +106,8 @@ export const scenarios: Scenario[] = [
   }),
 
   scenario({
-    name: 'b2c-gross-vendure-tax',
-    description: 'B2C gross channel, card payment; VAT = sum of Vendure line taxes (default), no rounding amount',
+    name: 'b2c-gross-item-tax',
+    description: 'B2C gross channel, card payment; VAT = sum of the per-line taxes (default), no rounding amount',
     expectedTotalWithTax: 1497,
     model: model({
       buyer: {
@@ -122,7 +122,7 @@ export const scenarios: Scenario[] = [
         { name: 'Textmarker 4er', sku: 'TM-4', price: 503, tax: 96 },
       ]),
       payment: { means: [{ code: '48', cardLast4: '1234', cardNetwork: 'VISA' }], prepaidAmount: 1497 },
-      meta: { orderId: '2', orderCode: 'XYZ789', channelCode: 'default', pricesIncludeTax: true, priceDisplay: 'gross' },
+      meta: { pricesIncludeTax: true, priceDisplay: 'gross' },
     }),
   }),
 
@@ -162,7 +162,7 @@ export const scenarios: Scenario[] = [
         { name: 'Fachbuch E-Rechnung', sku: 'BOOK-1', price: 1869, vat: VAT_7, tax: 131, description: 'Gebundene Ausgabe' },
         { name: 'Solarmodul 400 W', sku: 'PV-400', price: 18900, vat: { code: 'Z', rate: '0' }, tax: 0 },
       ]),
-      charges: [{ amount: 490, reason: 'DHL Paket', reasonCode: 'FC', vat: VAT_19, vendureTaxAmount: 93 }],
+      charges: [{ amount: 490, reason: 'DHL Paket', reasonCode: 'FC', vat: VAT_19, itemTaxAmount: 93 }],
       payment: { means: [{ code: '68', text: 'PayPal' }], prepaidAmount: 22673 },
     }),
   }),
@@ -309,7 +309,7 @@ function creditScenario(name: string, description: string, invoiceName: string, 
 scenarios.push(
   creditScenario(
     'credit-note-goodwill',
-    'Amount-only refund (Vendure default) split proportionally across 19 %, 7 % and zero rated (Q5)',
+    'Amount-only refund split proportionally across 19 %, 7 % and zero rated (Q5)',
     'mixed-rates',
     { amount: 5000, note: 'Kulanz wegen Lieferverzug' },
     'GS-2026-00002',

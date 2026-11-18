@@ -103,7 +103,7 @@ export interface CreditableState {
   remainingTotal: Money;
 }
 
-const itemTax = (net: Money, vendureTax: Money | undefined, category: VatCategory) => vendureTax ?? percentOf(net, category.rate);
+const itemTax = (net: Money, knownTax: Money | undefined, category: VatCategory) => knownTax ?? percentOf(net, category.rate);
 
 function addShare(map: Map<string, VatShare>, category: VatCategory, net: Money, tax: Money) {
   const key = vatGroupKey(category);
@@ -126,17 +126,17 @@ interface Contribution {
 function contributions(model: EInvoiceModel): Contribution[] {
   const items: Contribution[] = [];
   for (const line of model.lines) {
-    const tax = itemTax(line.netAmount, line.vendureTaxAmount, line.vat);
+    const tax = itemTax(line.netAmount, line.itemTaxAmount, line.vat);
     items.push({ category: line.vat, net: line.netAmount, tax, ref: line.creditOf, quantity: line.quantity });
   }
   for (const charge of model.charges) {
     if (!charge.vat) throw new Error(`Charge "${charge.reason}" has no VAT category`);
-    const tax = itemTax(charge.amount, charge.vendureTaxAmount, charge.vat);
+    const tax = itemTax(charge.amount, charge.itemTaxAmount, charge.vat);
     items.push({ category: charge.vat, net: charge.amount, tax, ref: charge.creditOf });
   }
   for (const allowance of model.allowances) {
     if (!allowance.vat) throw new Error(`Allowance "${allowance.reason}" has no VAT category`);
-    const tax = itemTax(allowance.amount, allowance.vendureTaxAmount, allowance.vat);
+    const tax = itemTax(allowance.amount, allowance.itemTaxAmount, allowance.vat);
     items.push({ category: allowance.vat, net: -allowance.amount, tax: -tax, ref: allowance.creditOf });
   }
   return items;
@@ -147,7 +147,7 @@ const grossOf = (s: VatShare) => s.net + s.tax;
 /** Derives what of `invoice` is still creditable, given its earlier credit notes. */
 export function creditableState(invoice: EInvoiceModel, creditNotes: EInvoiceModel[]): CreditableState {
   const lines = new Map(
-    invoice.lines.map((l) => [l.id, { quantity: l.quantity, net: l.netAmount, tax: itemTax(l.netAmount, l.vendureTaxAmount, l.vat) }]),
+    invoice.lines.map((l) => [l.id, { quantity: l.quantity, net: l.netAmount, tax: itemTax(l.netAmount, l.itemTaxAmount, l.vat) }]),
   );
   const charges = new Set(invoice.charges.map((_, i) => i));
   const allowances = new Set(invoice.allowances.map((_, i) => i));
@@ -224,7 +224,7 @@ export function buildCreditNote(
     // Shares are derived from the cumulative quantity, so rounding never drifts and the last credit is exact
     const share = (amount: Money, done: Money) =>
       all ? done : scaleMoney(amount, addDecimal(credited, quantity), line.quantity) - scaleMoney(amount, credited, line.quantity);
-    const lineTax = itemTax(line.netAmount, line.vendureTaxAmount, line.vat);
+    const lineTax = itemTax(line.netAmount, line.itemTaxAmount, line.vat);
     const net = share(line.netAmount, remaining.net);
     const tax = share(lineTax, remaining.tax);
     const diff = multiply(line.netUnitPrice, quantity) - net;
@@ -241,7 +241,7 @@ export function buildCreditNote(
       allowances: diff > 0 ? adjust(line.allowances, diff) : [],
       charges: diff < 0 ? adjust(line.charges, -diff) : [],
       netAmount: net,
-      vendureTaxAmount: tax,
+      itemTaxAmount: tax,
       display: line.display ? { grossUnitPrice: line.display.grossUnitPrice, grossAmount: net + tax } : undefined,
       creditOf: { line: line.id },
     });
@@ -261,8 +261,8 @@ export function buildCreditNote(
     for (const share of state.amountCredits.values()) {
       const gross = grossOf(share);
       const item = { reason: texts.alreadyCredited, vat: share.category };
-      if (gross > 0) allowances.push({ ...item, amount: share.net, vendureTaxAmount: share.tax });
-      else if (gross < 0) charges.push({ ...item, amount: -share.net, vendureTaxAmount: -share.tax });
+      if (gross > 0) allowances.push({ ...item, amount: share.net, itemTaxAmount: share.tax });
+      else if (gross < 0) charges.push({ ...item, amount: -share.net, itemTaxAmount: -share.tax });
     }
   } else {
     const quantities = new Map<string, Decimal>();
@@ -329,11 +329,11 @@ export function buildCreditNote(
             charges: [],
             netAmount: net,
             vat: category,
-            vendureTaxAmount: gross - net,
+            itemTaxAmount: gross - net,
             display: { grossUnitPrice: gross, grossAmount: gross },
           });
         } else {
-          allowances.push({ amount: net, reason: texts.deduction, vat: category, vendureTaxAmount: gross - net });
+          allowances.push({ amount: net, reason: texts.deduction, vat: category, itemTaxAmount: gross - net });
         }
       });
     }
@@ -352,7 +352,7 @@ export function buildCreditNote(
         charges: [],
         netAmount: charge.amount,
         vat: charge.vat as VatCategory,
-        vendureTaxAmount: charge.vendureTaxAmount,
+        itemTaxAmount: charge.itemTaxAmount,
         creditOf: charge.creditOf,
       });
     }
@@ -414,7 +414,6 @@ export function creditPaymentMeans(means: PaymentMeans[], texts: Pick<CreditNote
 export interface CreditableSummary {
   lines: {
     lineId: string;
-    orderLineId?: string;
     name: string;
     sellerItemId?: string;
     invoicedQuantity: Decimal;
@@ -431,14 +430,12 @@ export interface CreditableSummary {
 /** What can still be credited, per line, for display (e.g. the credit note dialog). */
 export function creditableSummary(invoice: EInvoiceModel, creditNotes: EInvoiceModel[]): CreditableSummary {
   const state = creditableState(invoice, creditNotes);
-  const gross = (net: Money, vendureTax: Money | undefined, vat: VatCategory | undefined) =>
-    vat ? net + itemTax(net, vendureTax, vat) : net;
+  const gross = (net: Money, knownTax: Money | undefined, vat: VatCategory | undefined) => (vat ? net + itemTax(net, knownTax, vat) : net);
   return {
     lines: invoice.lines.map((line) => {
       const rest = state.lines.get(line.id);
       return {
         lineId: line.id,
-        orderLineId: line.orderLineId,
         name: line.name,
         sellerItemId: line.sellerItemId,
         invoicedQuantity: line.quantity,
@@ -447,10 +444,10 @@ export function creditableSummary(invoice: EInvoiceModel, creditNotes: EInvoiceM
       };
     }),
     chargesGross:
-      sum([...state.charges].map((i) => gross(invoice.charges[i].amount, invoice.charges[i].vendureTaxAmount, invoice.charges[i].vat))) -
+      sum([...state.charges].map((i) => gross(invoice.charges[i].amount, invoice.charges[i].itemTaxAmount, invoice.charges[i].vat))) -
       sum(
         [...state.allowances].map((i) =>
-          gross(invoice.allowances[i].amount, invoice.allowances[i].vendureTaxAmount, invoice.allowances[i].vat),
+          gross(invoice.allowances[i].amount, invoice.allowances[i].itemTaxAmount, invoice.allowances[i].vat),
         ),
       ),
     remainingTotal: state.remainingTotal,

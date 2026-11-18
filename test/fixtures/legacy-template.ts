@@ -171,9 +171,9 @@ function countryName(code: string, locale: string): string {
   }
 }
 
-/** Amount including VAT, for gross display: Vendure's tax where known, else computed from the rate. */
-function withTax(amount: Money, rate: string, vendureTax: Money | undefined): Money {
-  return amount + (vendureTax ?? percentOf(amount, rate));
+/** Amount including VAT, for gross display: the precomputed tax where known, else computed from the rate. */
+function withTax(amount: Money, rate: string, itemTax: Money | undefined): Money {
+  return amount + (itemTax ?? percentOf(amount, rate));
 }
 
 function lineTable(model: EInvoiceModel, labels: PdfLabels, f: Formatters, accent: string): Node {
@@ -204,7 +204,7 @@ function lineTable(model: EInvoiceModel, labels: PdfLabels, f: Formatters, accen
 
 function lineRow(line: InvoiceLine, gross: boolean, labels: PdfLabels, f: Formatters): Node[] {
   const unitPrice = gross ? (line.display?.grossUnitPrice ?? withTax(line.netUnitPrice, line.vat.rate, undefined)) : line.netUnitPrice;
-  const amount = gross ? (line.display?.grossAmount ?? withTax(line.netAmount, line.vat.rate, line.vendureTaxAmount)) : line.netAmount;
+  const amount = gross ? (line.display?.grossAmount ?? withTax(line.netAmount, line.vat.rate, line.itemTaxAmount)) : line.netAmount;
   const details: string[] = [];
   if (line.sellerItemId) details.push(`${labels.itemNumber} ${line.sellerItemId}`);
   if (line.description) details.push(line.description);
@@ -226,7 +226,7 @@ function lineRow(line: InvoiceLine, gross: boolean, labels: PdfLabels, f: Format
 
 function docRow(ac: AllowanceCharge, isAllowance: boolean, gross: boolean, f: Formatters): Node[] {
   const rate = ac.vat?.rate ?? '0';
-  const amount = gross ? withTax(ac.amount, rate, ac.vendureTaxAmount) : ac.amount;
+  const amount = gross ? withTax(ac.amount, rate, ac.itemTaxAmount) : ac.amount;
   const signed = isAllowance ? `− ${f.money(amount)}` : f.money(amount);
   return ['', ac.reason, '', '', { text: f.percent(rate), alignment: 'right' }, { text: signed, alignment: 'right' }];
 }

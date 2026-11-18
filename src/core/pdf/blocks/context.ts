@@ -61,9 +61,9 @@ function countryName(code: string, locale: string): string {
   }
 }
 
-/** Amount including VAT, for gross display: Vendure's tax where known, else computed from the rate. */
-export function withTax(amount: Money, rate: string, vendureTax: Money | undefined): Money {
-  return amount + (vendureTax ?? percentOf(amount, rate));
+/** Amount including VAT, for gross display: the precomputed tax where known, else computed from the rate. */
+export function withTax(amount: Money, rate: string, itemTax: Money | undefined): Money {
+  return amount + (itemTax ?? percentOf(amount, rate));
 }
 
 export function formatIban(iban: string): string {

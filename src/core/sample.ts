@@ -241,9 +241,6 @@ export function sampleModel(kind: SampleKind, options: SampleOptions): EInvoiceM
     payment: { means: [], prepaidAmount: 0 },
     taxCalculation: 'en16931',
     meta: {
-      orderId: 'sample',
-      orderCode: 'SAMPLE-1001',
-      channelCode: 'sample',
       pricesIncludeTax: gross,
       priceDisplay: gross ? 'gross' : 'net',
       settlement: kind === 'credit-note' ? 'refund' : undefined,

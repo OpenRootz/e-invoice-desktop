@@ -32,12 +32,12 @@ function invoice(): EInvoiceModel {
         name: 'Kaffee',
         netAmount: 2800,
         allowances: [{ amount: 200, reason: 'Herbstrabatt' }],
-        vendureTaxAmount: 532,
+        itemTaxAmount: 532,
       }),
-      line(1869, '1', VAT_7, { id: '2', name: 'Buch', vendureTaxAmount: 131 }),
-      line(18900, '1', ZERO, { id: '3', name: 'Solarmodul', vendureTaxAmount: 0 }),
+      line(1869, '1', VAT_7, { id: '2', name: 'Buch', itemTaxAmount: 131 }),
+      line(18900, '1', ZERO, { id: '3', name: 'Solarmodul', itemTaxAmount: 0 }),
     ],
-    charges: [{ amount: 490, reason: 'DHL Paket', reasonCode: 'FC', vat: VAT_19, vendureTaxAmount: 93 }],
+    charges: [{ amount: 490, reason: 'DHL Paket', reasonCode: 'FC', vat: VAT_19, itemTaxAmount: 93 }],
     payment: { means: [{ code: '58', iban: 'DE02120300000000202051' }], terms: '14 Tage', prepaidAmount: 0 },
   });
   m.totals = calculate(m);
@@ -87,7 +87,7 @@ describe('buildCreditNote', () => {
     for (const n of [first, second, third]) expectValid(n);
     // 2800 / 3 → 933, 934 (cumulative 1867), 933
     expect([first, second, third].map((n) => n.lines[0].netAmount)).toEqual([933, 934, 933]);
-    expect([first, second, third].map((n) => n.lines[0].vendureTaxAmount)).toEqual([177, 178, 177]);
+    expect([first, second, third].map((n) => n.lines[0].itemTaxAmount)).toEqual([177, 178, 177]);
     expect(first.lines[0]).toMatchObject({
       quantity: '1',
       netUnitPrice: 1000,
@@ -104,12 +104,12 @@ describe('buildCreditNote', () => {
     expectValid(note);
     expect(gross(note)).toBe(5000);
     // gross per rate: 19 % 3290+625, 7 % 2000, 0 % 18900 → total 24815
-    expect(note.lines.map((l) => [l.name, l.netAmount + (l.vendureTaxAmount ?? 0)])).toEqual([
+    expect(note.lines.map((l) => [l.name, l.netAmount + (l.itemTaxAmount ?? 0)])).toEqual([
       ['Gutschrift 19 %', 789],
       ['Gutschrift 7 %', 403],
       ['Gutschrift 0 %', 3808],
     ]);
-    expect(note.lines[0]).toMatchObject({ quantity: '1', unitCode: 'C62', netUnitPrice: 663, netAmount: 663, vendureTaxAmount: 126 });
+    expect(note.lines[0]).toMatchObject({ quantity: '1', unitCode: 'C62', netUnitPrice: 663, netAmount: 663, itemTaxAmount: 126 });
   });
 
   it('gives the rounding remainder to the largest share', () => {
@@ -137,7 +137,7 @@ describe('buildCreditNote', () => {
     expectValid(note);
     expect(note.charges).toEqual([]);
     expect(note.lines).toEqual([
-      expect.objectContaining({ name: 'DHL Paket', netAmount: 490, vendureTaxAmount: 93, creditOf: { charge: 0 } }),
+      expect.objectContaining({ name: 'DHL Paket', netAmount: 490, itemTaxAmount: 93, creditOf: { charge: 0 } }),
     ]);
     expect(creditableState(original, [note]).charges.size).toBe(0);
     // charges are credited only once
@@ -148,7 +148,7 @@ describe('buildCreditNote', () => {
     const note = credit(invoice(), [], { lines: [{ lineId: '2', quantity: '1' }], amount: -500 });
     expectValid(note);
     expect(gross(note)).toBe(2000 - 500);
-    expect(note.allowances).toEqual([{ amount: 467, reason: 'Abzug', vat: VAT_7, vendureTaxAmount: 33 }]);
+    expect(note.allowances).toEqual([{ amount: 467, reason: 'Abzug', vat: VAT_7, itemTaxAmount: 33 }]);
   });
 
   it('rejects what cannot be credited', () => {
@@ -183,9 +183,9 @@ describe('buildCreditNote', () => {
     const m = model({
       taxCalculation: 'en16931',
       lines: [
-        line(335, '1', VAT_19, { vendureTaxAmount: 64 }),
-        line(419, '1', VAT_19, { vendureTaxAmount: 80 }),
-        line(503, '1', VAT_19, { vendureTaxAmount: 96 }),
+        line(335, '1', VAT_19, { itemTaxAmount: 64 }),
+        line(419, '1', VAT_19, { itemTaxAmount: 80 }),
+        line(503, '1', VAT_19, { itemTaxAmount: 96 }),
       ],
       payment: { means: [{ code: '48', cardLast4: '1234' }], prepaidAmount: 1497 },
     });

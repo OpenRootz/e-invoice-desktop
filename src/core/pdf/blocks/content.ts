@@ -14,7 +14,7 @@ export const introText: BlockRenderer = ({ block }) => {
 
 export const closingText = introText;
 
-/** Free text with the placeholders `{number}`, `{issueDate}`, `{orderCode}` and `{buyerName}` (no amounts). */
+/** Free text with the placeholders `{number}`, `{issueDate}`, `{orderReference}` and `{buyerName}` (no amounts). */
 export const customText: BlockRenderer = ({ block, model, f }) => {
   const text = textProp(block);
   if (!text) return null;
@@ -22,7 +22,7 @@ export const customText: BlockRenderer = ({ block, model, f }) => {
     text: fill(text, {
       number: model.number,
       issueDate: f.date(model.issueDate),
-      orderCode: model.meta.orderCode,
+      orderReference: model.orderReference ?? '',
       buyerName: model.buyer.name,
     }),
   };
@@ -62,7 +62,7 @@ export const lines: BlockRenderer = ({ model, labels, f, accent, block }) => {
 
 function lineRow(line: InvoiceLine, gross: boolean, labels: PdfLabels, f: Formatters): PdfNode[] {
   const unitPrice = gross ? (line.display?.grossUnitPrice ?? withTax(line.netUnitPrice, line.vat.rate, undefined)) : line.netUnitPrice;
-  const amount = gross ? (line.display?.grossAmount ?? withTax(line.netAmount, line.vat.rate, line.vendureTaxAmount)) : line.netAmount;
+  const amount = gross ? (line.display?.grossAmount ?? withTax(line.netAmount, line.vat.rate, line.itemTaxAmount)) : line.netAmount;
   const details: string[] = [];
   if (line.sellerItemId) details.push(`${labels.itemNumber} ${line.sellerItemId}`);
   if (line.description) details.push(line.description);
@@ -84,7 +84,7 @@ function lineRow(line: InvoiceLine, gross: boolean, labels: PdfLabels, f: Format
 
 function docRow(ac: AllowanceCharge, isAllowance: boolean, gross: boolean, f: Formatters): PdfNode[] {
   const rate = ac.vat?.rate ?? '0';
-  const amount = gross ? withTax(ac.amount, rate, ac.vendureTaxAmount) : ac.amount;
+  const amount = gross ? withTax(ac.amount, rate, ac.itemTaxAmount) : ac.amount;
   const signed = isAllowance ? `− ${f.money(amount)}` : f.money(amount);
   return ['', ac.reason, '', '', { text: f.percent(rate), alignment: 'right' }, { text: signed, alignment: 'right' }];
 }

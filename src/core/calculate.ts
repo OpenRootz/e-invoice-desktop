@@ -3,12 +3,12 @@ import { fromUnits, normalizeDecimal, percentOf, sum } from './money';
 
 export interface CalculateOptions {
   /**
-   * The total the customer was charged (Vendure `order.totalWithTax`).
+   * The total the customer was charged (e.g. the sum of the entered gross prices).
    * In `en16931` mode the difference to the calculated total becomes the rounding amount (BT-114).
    */
   expectedTotalWithTax?: Money;
   /**
-   * In `vendure` mode: if the tax of one VAT group differs from the EN 16931 calculation by at least
+   * In `items` mode: if the tax of one VAT group differs from the EN 16931 calculation by at least
    * this amount (minor units), the whole invoice falls back to `en16931`. Default: 0.50 currency units.
    */
   fallbackThreshold?: Money;
@@ -17,8 +17,8 @@ export interface CalculateOptions {
 interface GroupItem {
   /** signed contribution to the taxable base (allowances are negative) */
   base: Money;
-  /** signed Vendure tax for this item, if known */
-  vendureTax?: Money;
+  /** signed precomputed tax for this item, if known */
+  itemTax?: Money;
 }
 
 interface Group {
@@ -41,17 +41,17 @@ function groupByVat(model: EInvoiceModel): Group[] {
     groups.set(key, group);
   };
   for (const line of model.lines) {
-    add(line.vat, { base: line.netAmount, vendureTax: line.vendureTaxAmount }, `Line ${line.id}`);
+    add(line.vat, { base: line.netAmount, itemTax: line.itemTaxAmount }, `Line ${line.id}`);
   }
   for (const charge of model.charges) {
-    add(charge.vat, { base: charge.amount, vendureTax: charge.vendureTaxAmount }, `Charge "${charge.reason}"`);
+    add(charge.vat, { base: charge.amount, itemTax: charge.itemTaxAmount }, `Charge "${charge.reason}"`);
   }
   for (const allowance of model.allowances) {
     add(
       allowance.vat,
       {
         base: -allowance.amount,
-        vendureTax: allowance.vendureTaxAmount === undefined ? undefined : -allowance.vendureTaxAmount,
+        itemTax: allowance.itemTaxAmount === undefined ? undefined : -allowance.itemTaxAmount,
       },
       `Allowance "${allowance.reason}"`,
     );
@@ -64,16 +64,16 @@ function taxPerGroup(group: Group, mode: TaxCalculation): Money {
   if (mode === 'en16931') {
     return percentOf(base, group.category.rate);
   }
-  // vendure: use Vendure's (per-line rounded) tax where known, compute the rest EN-style
-  const known = group.items.filter((i) => i.vendureTax !== undefined);
-  const unknownBase = sum(group.items.filter((i) => i.vendureTax === undefined).map((i) => i.base));
-  return sum(known.map((i) => i.vendureTax as Money)) + percentOf(unknownBase, group.category.rate);
+  // items: use the precomputed (per-item rounded) tax where known, compute the rest EN-style
+  const known = group.items.filter((i) => i.itemTax !== undefined);
+  const unknownBase = sum(group.items.filter((i) => i.itemTax === undefined).map((i) => i.base));
+  return sum(known.map((i) => i.itemTax as Money)) + percentOf(unknownBase, group.category.rate);
 }
 
 /**
  * Computes the VAT breakdown and document totals (BT-106 … BT-115).
  *
- * - `vendure` mode (default): tax per VAT group = sum of Vendure's line taxes, so the invoice matches the
+ * - `items` mode (default): tax per VAT group = sum of the per-item taxes, so the invoice matches the
  *   amount the customer paid. EN 16931 tolerates a deviation of up to 1 currency unit per group.
  * - `en16931` mode: tax per group = round(base × rate); the difference to the charged total goes into the
  *   rounding amount BT-114.
@@ -84,14 +84,14 @@ export function calculate(model: EInvoiceModel, options: CalculateOptions = {}):
   const groups = groupByVat(model);
 
   let applied: TaxCalculation = model.taxCalculation;
-  if (applied === 'vendure') {
+  if (applied === 'items') {
     for (const group of groups) {
-      const vendureTax = taxPerGroup(group, 'vendure');
+      const itemTax = taxPerGroup(group, 'items');
       const enTax = taxPerGroup(group, 'en16931');
-      if (Math.abs(vendureTax - enTax) >= threshold) {
+      if (Math.abs(itemTax - enTax) >= threshold) {
         applied = 'en16931';
         warnings.push(
-          `VAT ${group.category.code} ${group.category.rate} %: Vendure tax ${vendureTax} differs from ` +
+          `VAT ${group.category.code} ${group.category.rate} %: item tax ${itemTax} differs from ` +
             `EN 16931 tax ${enTax} by more than the threshold ${threshold}; using EN 16931 calculation`,
         );
         break;

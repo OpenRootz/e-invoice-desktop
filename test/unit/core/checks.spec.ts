@@ -8,7 +8,7 @@ function codes(m: EInvoiceModel, formats: Parameters<typeof checkModel>[1] = ['z
   return checkModel(m, formats).map((i) => i.code);
 }
 
-const valid = () => model({ lines: [line(1000, '1', VAT_19, { vendureTaxAmount: 190 })] });
+const valid = () => model({ lines: [line(1000, '1', VAT_19, { itemTaxAmount: 190 })] });
 
 describe('checkModel', () => {
   it('accepts a complete invoice', () => {

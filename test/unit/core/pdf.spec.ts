@@ -109,7 +109,7 @@ describe('default template', () => {
   });
 
   it('shows gross prices for consumers', () => {
-    const model = scenarios.find((s) => s.name === 'b2c-gross-vendure-tax')!.model;
+    const model = scenarios.find((s) => s.name === 'b2c-gross-item-tax')!.model;
     const t = text({ ...model, lines: model.lines.map((l) => ({ ...l, display: undefined })) });
     // 3.35 net + 0.64 VAT → 3.99 gross
     expect(t).toContain('3,99 €');
