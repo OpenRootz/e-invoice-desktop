@@ -7,6 +7,7 @@ import { MasterDataProvider, useMasterData } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { CompanyPage } from '@/pages/company';
 import { CustomersPage } from '@/pages/customers';
+import { InvoicePage } from '@/pages/invoice';
 import { Placeholder } from '@/pages/placeholder';
 import { ProductsPage } from '@/pages/products';
 import { SettingsPage } from '@/pages/settings';
@@ -14,7 +15,7 @@ import { SettingsPage } from '@/pages/settings';
 type PageKey = 'invoice' | 'customers' | 'products' | 'company' | 'layout' | 'settings';
 
 const PAGES: { key: PageKey; icon: ComponentType<{ className?: string }>; Page: ComponentType }[] = [
-  { key: 'invoice', icon: FilePlus2, Page: Placeholder },
+  { key: 'invoice', icon: FilePlus2, Page: InvoicePage },
   { key: 'customers', icon: Users, Page: CustomersPage },
   { key: 'products', icon: Package, Page: ProductsPage },
   { key: 'company', icon: Building2, Page: CompanyPage },
