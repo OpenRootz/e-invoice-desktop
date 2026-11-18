@@ -202,6 +202,10 @@ export const en: Messages = {
     version: 'Version {{version}}',
   },
   invoice: {
+    newCustomer: 'New customer',
+    saveCustomer: 'Save the customer for later invoices',
+    lineNamePlaceholder: 'e.g. a one-off item or a service',
+    customerMissing: 'Please enter or choose a customer.',
     intro: 'Step by step to a valid e-invoice.',
     details: 'Invoice details',
     customerBusiness: 'Business customer',

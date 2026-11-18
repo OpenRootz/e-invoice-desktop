@@ -202,6 +202,10 @@ export const de = {
     version: 'Version {{version}}',
   },
   invoice: {
+    newCustomer: 'Neuer Kunde',
+    saveCustomer: 'Kunde für spätere Rechnungen speichern',
+    lineNamePlaceholder: 'z. B. Einzelstück oder Leistung',
+    customerMissing: 'Bitte einen Kunden eingeben oder auswählen.',
     intro: 'Schritt für Schritt zur gültigen E-Rechnung.',
     details: 'Rechnungsdetails',
     customerBusiness: 'Geschäftskunde',

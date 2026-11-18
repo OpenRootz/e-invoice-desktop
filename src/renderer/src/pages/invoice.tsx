@@ -1,5 +1,5 @@
 import { AlertTriangle, Check, CircleCheck, Eye, FileDown, FolderOpen, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Field, FieldGrid } from '@/components/form';
@@ -10,16 +10,18 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { countryOptions } from '@/lib/countries';
 import { errorMessage, useMasterData } from '@/lib/data';
 import { formatMoney } from '@/lib/format';
 import { useNavigate } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import { emptyCustomer, missingFields, normalizeCustomer } from '@/pages/customers';
 import { mappingLabels } from '../../../core/labels';
 import type { VatCategory } from '../../../core/model';
-import type { Issue } from '../../../shared/api';
+import type { Issue, NewCustomer } from '../../../shared/api';
 import { formatMoneyInput, parseMoneyInput, parseQuantityInput, UNIT_CODES, VAT_PRESETS, vatPresetKey } from '../../../shared/input';
 import { PAYMENT_METHODS, prepareInvoice, productUnitPrice, type InvoiceRequest, type PaymentMethod } from '../../../shared/invoice';
-import type { Customer, Product } from '../../../shared/schema';
+import type { Product } from '../../../shared/schema';
 
 type VatKey = (typeof VAT_PRESETS)[number]['key'];
 
@@ -36,7 +38,11 @@ interface LineForm {
 }
 
 interface InvoiceForm {
+  /** A stored customer, or '' for a customer entered on the invoice */
   customerId: string;
+  newCustomer: NewCustomer;
+  /** Store the entered customer when the invoice is created */
+  saveCustomer: boolean;
   number: string;
   /** The user typed a number; it is no longer replaced by the suggestion */
   numberEdited: boolean;
@@ -56,16 +62,22 @@ const today = () => new Date().toLocaleDateString('sv-SE');
 const vatOf = (key: VatKey): VatCategory => VAT_PRESETS.find((p) => p.key === key)!.vat;
 let lineSeq = 0;
 const lineKey = () => `l${++lineSeq}`;
+const freeLine = (): LineForm => ({ key: lineKey(), name: '', quantity: '1', unitCode: 'H87', price: '', discount: '', vatKey: 'S19' });
+/** A line nobody has typed into yet; it is left out instead of reported */
+const isBlank = (l: LineForm) => !l.name.trim() && !l.price.trim() && !l.discount.trim();
 
 const emptyForm = (): InvoiceForm => ({
   customerId: '',
+  newCustomer: emptyCustomer(),
+  saveCustomer: true,
   number: '',
   numberEdited: false,
   issueDate: today(),
   deliveryDate: today(),
   orderReference: '',
   language: '',
-  lines: [],
+  // Most invoices have items that are not stored as products: start with a free line
+  lines: [freeLine()],
   shipping: '',
   shippingVatKey: 'S19',
   paymentMethod: 'transfer',
@@ -83,11 +95,12 @@ interface LineErrors {
 }
 
 /** The request for main, built from the valid parts of the form, and the fields that are invalid. */
-function toRequest(form: InvoiceForm, customer: Customer | undefined, defaultLanguage: 'de' | 'en') {
+function toRequest(form: InvoiceForm, customer: NewCustomer | undefined, defaultLanguage: 'de' | 'en') {
   const errors: Record<string, LineErrors> = {};
   const language = form.language || customer?.invoiceLanguage || defaultLanguage;
   const lines: InvoiceRequest['lines'] = [];
   for (const l of form.lines) {
+    if (isBlank(l)) continue;
     const quantity = parseQuantityInput(l.quantity);
     const price = parseMoneyInput(l.price);
     const discount = l.discount.trim() ? parseMoneyInput(l.discount) : 0;
@@ -160,7 +173,12 @@ export function InvoicePage() {
   const updateLine = (key: string, change: Partial<LineForm>) =>
     update({ lines: form.lines.map((l) => (l.key === key ? { ...l, ...change } : l)) });
 
-  const customer = data.customers.find((c) => c.id === form.customerId);
+  const stored = data.customers.find((c) => c.id === form.customerId);
+  const isNew = !stored;
+  const missing = missingFields(form.newCustomer);
+  // An entered customer counts once the § 14 details are complete
+  const customer: NewCustomer | undefined = stored ?? (missing.size ? undefined : normalizeCustomer(form.newCustomer));
+  const countries = useMemo(() => countryOptions(i18n.language), [i18n.language]);
   const { request, errors, shippingError } = toRequest(form, customer, profile?.invoiceLanguage ?? 'de');
   const prepared = request && profile ? prepareInvoice(request, profile) : undefined;
   const totals = prepared?.model.totals;
@@ -172,27 +190,39 @@ export function InvoicePage() {
 
   if (!profile) return <Onboarding />;
 
-  const addProduct = (product: Product) =>
-    update({
-      lines: [
-        ...form.lines,
-        {
-          key: lineKey(),
-          name: product.name,
-          description: product.description,
-          sellerItemId: product.sellerItemId,
-          quantity: '1',
-          unitCode: product.unitCode,
-          price: formatMoneyInput(productUnitPrice(product, pricesIncludeTax, smallBusiness), lang),
-          discount: '',
-          vatKey: vatPresetKey(product.vat) ?? 'S19',
-        },
-      ],
-    });
-  const addFreeLine = () =>
-    update({
-      lines: [...form.lines, { key: lineKey(), name: '', quantity: '1', unitCode: 'H87', price: '', discount: '', vatKey: 'S19' }],
-    });
+  const productLine = (product: Product, key: string): LineForm => ({
+    key,
+    name: product.name,
+    description: product.description,
+    sellerItemId: product.sellerItemId,
+    quantity: '1',
+    unitCode: product.unitCode,
+    price: formatMoneyInput(productUnitPrice(product, pricesIncludeTax, smallBusiness), lang),
+    discount: '',
+    vatKey: vatPresetKey(product.vat) ?? 'S19',
+  });
+  // A chosen product takes the place of an untouched free line
+  const addProduct = (product: Product) => update({ lines: [...form.lines.filter((l) => !isBlank(l)), productLine(product, lineKey())] });
+  /** Typing the name of a stored product (or picking it from the suggestions) fills in its details */
+  const changeName = (line: LineForm, name: string) => {
+    const product = !line.price.trim() ? data.products.find((p) => p.name === name) : undefined;
+    updateLine(line.key, product ? productLine(product, line.key) : { name });
+  };
+  const addFreeLine = () => update({ lines: [...form.lines, freeLine()] });
+  const updateCustomer = (change: (c: NewCustomer) => void) => {
+    const next = structuredClone(form.newCustomer);
+    change(next);
+    update({ newCustomer: next });
+  };
+  const customerText = (get: (c: NewCustomer) => string | undefined, set: (c: NewCustomer, v: string) => void) => ({
+    value: get(form.newCustomer) ?? '',
+    onChange: (e: ChangeEvent<HTMLInputElement>) => updateCustomer((c) => set(c, e.target.value)),
+  });
+  // Required fields are marked once the user started typing a customer
+  const customerTouched = Object.values({ ...form.newCustomer.buyer.address, name: form.newCustomer.buyer.name }).some(
+    (v) => typeof v === 'string' && v.trim() && v !== 'DE',
+  );
+  const required = (key: string) => (customerTouched && missing.has(key) ? t('company.errors.required') : undefined);
 
   const issueText = (i: Issue) => t(`invoice.issues.${i.code}` as 'invoice.issues.EMPTY_INVOICE', { defaultValue: i.message });
 
@@ -204,6 +234,10 @@ export function InvoicePage() {
       if (result.status === 'invalid') setExportIssues(result.issues);
       if (result.status === 'saved') {
         setSaved(request.number);
+        if (isNew && form.saveCustomer && customer) {
+          const created = await window.api.customers.save(customer);
+          setForm((f) => ({ ...f, customerId: created.id, newCustomer: emptyCustomer() }));
+        }
         await data.reload();
       }
     } catch (e) {
@@ -225,11 +259,11 @@ export function InvoicePage() {
 
   const newInvoice = () => {
     setSaved(undefined);
-    setForm({ ...emptyForm(), paymentMethod: form.paymentMethod });
+    setForm({ ...emptyForm(), paymentMethod: form.paymentMethod, saveCustomer: form.saveCustomer });
   };
 
   // Amount per form line: the model's lines follow the valid form lines in order
-  const validKeys = form.lines.filter((l) => !errors[l.key]).map((l) => l.key);
+  const validKeys = form.lines.filter((l) => !errors[l.key] && !isBlank(l)).map((l) => l.key);
   const lineAmount = (key: string) => {
     const line = prepared?.model.lines[validKeys.indexOf(key)];
     if (!line) return '';
@@ -237,7 +271,7 @@ export function InvoicePage() {
   };
 
   const country = (code: string) => new Intl.DisplayNames([lang], { type: 'region' }).of(code) ?? code;
-  const ready = !!request && !formInvalid && issues.length === 0 && form.lines.length > 0;
+  const ready = !!request && !formInvalid && issues.length === 0 && request.lines.length > 0;
 
   return (
     <div className="flex flex-wrap items-start gap-6">
@@ -257,12 +291,9 @@ export function InvoicePage() {
 
         <Card>
           <CardTitle>{t('invoice.customer')}</CardTitle>
-          <Field
-            label={t('invoice.chooseCustomer').replace(/\s*…$/, '')}
-            hint={data.customers.length ? undefined : t('invoice.noCustomers')}
-          >
-            <Select value={form.customerId} onChange={(e) => update({ customerId: e.target.value })}>
-              <option value="">{t('invoice.chooseCustomer')}</option>
+          <Field label={t('invoice.chooseCustomer').replace(/\s*…$/, '')}>
+            <Select value={stored ? form.customerId : ''} onChange={(e) => update({ customerId: e.target.value })}>
+              <option value="">{t('invoice.newCustomer')}</option>
               {data.customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.buyer.name} – {c.buyer.address.city}
@@ -270,19 +301,108 @@ export function InvoicePage() {
               ))}
             </Select>
           </Field>
-          {customer && (
+          {stored ? (
             <div className="mt-3.5 flex flex-wrap items-center gap-x-3.5 gap-y-2.5 text-[13.5px] leading-normal text-muted-foreground">
               <span>
                 {[
-                  customer.buyer.address.line1,
-                  `${customer.buyer.address.postalCode} ${customer.buyer.address.city}`,
-                  country(customer.buyer.address.countryCode),
+                  stored.buyer.address.line1,
+                  `${stored.buyer.address.postalCode} ${stored.buyer.address.city}`,
+                  country(stored.buyer.address.countryCode),
                 ].join(', ')}
               </span>
               <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-medium text-success">
-                {customer.buyer.isBusiness ? t('invoice.customerBusiness') : t('invoice.customerConsumer')}
-                {!smallBusiness && ` · ${customer.buyer.isBusiness ? t('invoice.netPrices') : t('invoice.grossPrices')}`}
+                {stored.buyer.isBusiness ? t('invoice.customerBusiness') : t('invoice.customerConsumer')}
+                {!smallBusiness && ` · ${stored.buyer.isBusiness ? t('invoice.netPrices') : t('invoice.grossPrices')}`}
               </span>
+            </div>
+          ) : (
+            <div className="mt-[18px] space-y-[18px]">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="new-customer-business"
+                  checked={form.newCustomer.buyer.isBusiness}
+                  onCheckedChange={(checked) => updateCustomer((c) => (c.buyer.isBusiness = checked))}
+                />
+                <Label htmlFor="new-customer-business" className="text-sm">
+                  {t('customers.business')}
+                </Label>
+              </div>
+              <FieldGrid>
+                <Field label={form.newCustomer.buyer.isBusiness ? t('customers.company') : t('customers.name')} error={required('name')}>
+                  <Input
+                    {...customerText(
+                      (c) => c.buyer.name,
+                      (c, v) => (c.buyer.name = v),
+                    )}
+                  />
+                </Field>
+                <Field label={t('company.street')} error={required('line1')}>
+                  <Input
+                    {...customerText(
+                      (c) => c.buyer.address.line1,
+                      (c, v) => (c.buyer.address.line1 = v),
+                    )}
+                  />
+                </Field>
+              </FieldGrid>
+              <FieldGrid cols={3}>
+                <Field label={t('company.postalCode')} error={required('postalCode')}>
+                  <Input
+                    {...customerText(
+                      (c) => c.buyer.address.postalCode,
+                      (c, v) => (c.buyer.address.postalCode = v),
+                    )}
+                  />
+                </Field>
+                <Field label={t('company.city')} error={required('city')}>
+                  <Input
+                    {...customerText(
+                      (c) => c.buyer.address.city,
+                      (c, v) => (c.buyer.address.city = v),
+                    )}
+                  />
+                </Field>
+                <Field label={t('company.country')}>
+                  <Select
+                    value={form.newCustomer.buyer.address.countryCode}
+                    onChange={(e) => updateCustomer((c) => (c.buyer.address.countryCode = e.target.value))}
+                  >
+                    {countries.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </FieldGrid>
+              <FieldGrid>
+                <Field label={`${t('customers.email')} (${t('common.optional')})`}>
+                  <Input
+                    type="email"
+                    {...customerText(
+                      (c) => c.buyer.electronicAddress?.value,
+                      (c, v) => (c.buyer.electronicAddress = { scheme: 'EM', value: v }),
+                    )}
+                  />
+                </Field>
+                {form.newCustomer.buyer.isBusiness && (
+                  <Field label={`${t('customers.vatId')} (${t('common.optional')})`}>
+                    <Input
+                      className="font-mono"
+                      {...customerText(
+                        (c) => c.buyer.vatId,
+                        (c, v) => (c.buyer.vatId = v),
+                      )}
+                    />
+                  </Field>
+                )}
+              </FieldGrid>
+              <div className="flex items-center gap-3">
+                <Switch id="save-customer" checked={form.saveCustomer} onCheckedChange={(saveCustomer) => update({ saveCustomer })} />
+                <Label htmlFor="save-customer" className="text-sm">
+                  {t('invoice.saveCustomer')}
+                </Label>
+              </div>
             </div>
           )}
         </Card>
@@ -350,8 +470,10 @@ export function InvoicePage() {
                           <Input
                             aria-label={t('invoice.columns.name')}
                             aria-invalid={(e.price && !l.name.trim()) || undefined}
+                            placeholder={t('invoice.lineNamePlaceholder')}
+                            list={data.products.length ? 'product-names' : undefined}
                             value={l.name}
-                            onChange={(ev) => updateLine(l.key, { name: ev.target.value })}
+                            onChange={(ev) => changeName(l, ev.target.value)}
                           />
                         </td>
                         <td className="py-1.5 pr-2">
@@ -426,9 +548,17 @@ export function InvoicePage() {
                   })}
                 </tbody>
               </table>
+              <datalist id="product-names">
+                {data.products.map((p) => (
+                  <option key={p.id} value={p.name} />
+                ))}
+              </datalist>
             </div>
           )}
           <div className={cn('flex flex-wrap gap-3', form.lines.length > 0 && 'mt-4 border-t border-border pt-4')}>
+            <Button variant="outline" onClick={addFreeLine}>
+              <Plus /> {t('invoice.addFreeLine')}
+            </Button>
             {data.products.length > 0 && (
               <Select
                 aria-label={t('invoice.addProduct')}
@@ -447,9 +577,6 @@ export function InvoicePage() {
                 ))}
               </Select>
             )}
-            <Button variant="outline" onClick={addFreeLine}>
-              <Plus /> {t('invoice.addFreeLine')}
-            </Button>
           </div>
         </Card>
 
@@ -528,7 +655,7 @@ export function InvoicePage() {
               </p>
             </dl>
           ) : (
-            <p className="text-muted-foreground">{customer ? '' : t('invoice.chooseCustomer')}</p>
+            <p className="text-muted-foreground">{customer ? '' : t('invoice.customerMissing')}</p>
           )}
         </Card>
 

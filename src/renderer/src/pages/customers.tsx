@@ -13,21 +13,21 @@ import { errorMessage, useMasterData } from '@/lib/data';
 import type { NewCustomer } from '../../../shared/api';
 import type { Customer } from '../../../shared/schema';
 
-const emptyCustomer = (): NewCustomer => ({
+export const emptyCustomer = (): NewCustomer => ({
   buyer: { name: '', isBusiness: false, address: { line1: '', postalCode: '', city: '', countryCode: 'DE' } },
 });
 
 /** Required for § 14 Abs. 4 UStG (full name and address of the buyer) */
-const REQUIRED = ['name', 'line1', 'postalCode', 'city'] as const;
+export const REQUIRED = ['name', 'line1', 'postalCode', 'city'] as const;
 
-function missingFields(c: NewCustomer): Set<string> {
+export function missingFields(c: NewCustomer): Set<string> {
   const b = c.buyer;
   const values = { name: b.name, line1: b.address.line1, postalCode: b.address.postalCode, city: b.address.city };
   return new Set(REQUIRED.filter((k) => !values[k].trim()));
 }
 
 /** Drops empty optional groups before saving. */
-function normalize(c: NewCustomer): NewCustomer {
+export function normalizeCustomer(c: NewCustomer): NewCustomer {
   const n = structuredClone(c);
   if (!n.buyer.electronicAddress?.value.trim()) delete n.buyer.electronicAddress;
   if (n.buyer.contact && !n.buyer.contact.name?.trim()) delete n.buyer.contact;
@@ -116,7 +116,7 @@ function CustomerDialog({
     setTouched(true);
     if (missing.size) return;
     try {
-      await window.api.customers.save(normalize(value));
+      await window.api.customers.save(normalizeCustomer(value));
       await onSaved();
     } catch (e) {
       setSaveError(errorMessage(e));
